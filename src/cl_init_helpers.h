@@ -23,7 +23,7 @@ static cl_bool is_device_extension_available(cl_device_id device, char *required
         return CL_TRUE;
 }
 
-static cl_platform_id clChoosePlatformID() {
+static cl_platform_id cl_choose_platform_id() {
     cl_platform_id chosen_platform = NULL;
 
     cl_uint num_platforms;
@@ -66,7 +66,7 @@ static cl_platform_id clChoosePlatformID() {
     return chosen_platform;
 }
 
-static cl_device_id clChooseDeviceID(cl_platform_id chosen_platform) {
+static cl_device_id cl_choose_device_id(cl_platform_id chosen_platform) {
     cl_device_id chosen_device = NULL;
 
     cl_uint num_devices;
@@ -141,15 +141,15 @@ static void cl_print_context_info(ComputeContext *ctx) {
 
     if (ctx -> spirv_version_str != NULL) {
         printf("SPIRV version:               %s\n", ctx -> spirv_version_str);
-        printf("SPIRV-KHR support:           %s\n\n", STRINGIFY(ctx -> is_spirv_khr));
+        printf("SPIRV-KHR Support:           %s\n\n", STRINGIFY(ctx -> is_spirv_khr));
     }
 
     printf("OpenCLv3.0 Support:          %s\n", STRINGIFY(ctx -> cl_30_support));
     printf("OpenCLv2.1 Support:          %s\n", STRINGIFY(ctx -> cl_21_support));
     printf("OpenCLv2.0 Support:          %s\n\n", STRINGIFY(ctx -> cl_20_support));
 
-    printf("Image support:               %s\n", STRINGIFY(ctx -> image_support));
-    printf("Unified Memory support:      %s\n", STRINGIFY(ctx -> usm_support));
+    printf("Image Support:               %s\n", STRINGIFY(ctx -> image_support));
+    printf("Unified Memory Support:      %s\n", STRINGIFY(ctx -> usm_support));
 
     printf("\n");
 }

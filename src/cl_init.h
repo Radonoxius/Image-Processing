@@ -3,8 +3,8 @@
 #include "cl_init_helpers.h"
 
 static ComputeContext cl_init() {
-    const cl_platform_id platform = clChoosePlatformID();
-    cl_device_id device = clChooseDeviceID(platform);
+    const cl_platform_id platform = cl_choose_platform_id();
+    cl_device_id device = cl_choose_device_id(platform);
     
     const cl_context_properties context_properties[3] = {
         CL_CONTEXT_PLATFORM,
@@ -29,7 +29,7 @@ static ComputeContext cl_init() {
     char *il_str = (char *) malloc(il_str_len);
     cl_int errcode = clGetDeviceInfo(device, CL_DEVICE_IL_VERSION, il_str_len, il_str, NULL);
 
-    if (errcode != CL_SUCCESS || il_str_len < 4) {
+    if (errcode != CL_SUCCESS) {
         cl_bool r = is_device_extension_available(device, "cl_khr_il_program");
 
         if (r == CL_TRUE) {
@@ -37,9 +37,11 @@ static ComputeContext cl_init() {
             il_str = (char *) malloc(il_str_len);
             clGetDeviceInfo(device, CL_DEVICE_IL_VERSION_KHR, il_str_len, il_str, NULL);
 
+            ctx.spirv_version_str = il_str;
             ctx.is_spirv_khr = CL_TRUE;
         }
     } else {
+        ctx.spirv_version_str = il_str;
         ctx.cl_21_support = CL_TRUE;
         ctx.cl_20_support = CL_TRUE;
     }
