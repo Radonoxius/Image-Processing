@@ -1,6 +1,6 @@
-#include "png_utils.h"
+#include "png/png_utils.h"
 
-#include "cl_init.h"
+#include "opencl/cl_init.h"
 
 int main() {
     ComputeContext ctx = cl_init();

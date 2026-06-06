@@ -6,11 +6,11 @@
 
 #include <png.h>
 
-// Helps you to specify the name/path of the `PNG` file
+// Helps you to specify the name of the `PNG` file
 #define PNG_FILE(filename) "../imgs/" filename ".png"
 
 // Holds `PNG` metadata and raw pixel data
-typedef struct {
+typedef struct PNGImage {
     uint32_t width;    // Width of the image in pixels
     uint32_t height;   // Height of the image in pixels
     uint8_t *pixels;   // Array of raw pixel values
@@ -20,7 +20,7 @@ typedef struct {
 /**
  * Reads a PNG file and returns the `PNGImage` struct
  * @param filename The name of the image that will be read.
- * @return Valid struct on success, Zeroed struct on failure.
+ * @return Valid `PNGImage` on success, Zeroed struct on failure.
  */
 static PNGImage png_read(const char *filename) {
     PNGImage img = { 0 };

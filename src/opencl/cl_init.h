@@ -2,6 +2,14 @@
 
 #include "cl_init_helpers.h"
 
+/**
+ * Initializes a simple OpenCL environment.
+ * 
+ * Lets the user dynamically choose the Platform and
+ * Device (if there are multiple available)
+ * 
+ * @return Valid `ComputeContext` on success, Zeroed struct on failure.
+ */
 static ComputeContext cl_init() {
     const cl_platform_id platform = cl_choose_platform_id();
     cl_device_id device = cl_choose_device_id(platform);
@@ -59,6 +67,11 @@ static ComputeContext cl_init() {
     return ctx;
 }
 
+/**
+ * Frees the created `ComputeContext`.
+ * 
+ * @param ctx The context to be freed
+ */
 static void cl_free_compute_context(ComputeContext ctx) {
     if (ctx.spirv_version_str != NULL)
         free(ctx.spirv_version_str);

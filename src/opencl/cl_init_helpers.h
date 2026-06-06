@@ -8,6 +8,17 @@
 #define STRINGIFY(b) ((b) ? "Yes" : "No")
 
 static char *ALL_DEVICE_EXTENSIONS = NULL;
+
+/**
+ * Checks whether the given device extension is supported.
+ * 
+ * @param device The OpenCL device whose extensions are
+ * checked against
+ * @param required_extension_name The name of the extension
+ * whose support status is required.
+ * 
+ * @return `CL_TRUE` if supported, else `CL_FALSE`
+ */
 static cl_bool is_device_extension_available(cl_device_id device, char *required_extension_name) {
     if (ALL_DEVICE_EXTENSIONS == NULL) {
         size_t extensions_str_len;
@@ -103,26 +114,34 @@ static cl_device_id cl_choose_device_id(cl_platform_id chosen_platform) {
     return chosen_device;
 }
 
-typedef struct {
-    cl_platform_id platform;
-    cl_device_id device;
-    cl_context context;
+// Holds OpenCL primitives and important info required
+// by the program to function properly
+typedef struct ComputeContext {
+    cl_platform_id platform;    // The chosen OpenCL Platform
+    cl_device_id device;        // The chosen Platform Device
+    cl_context context;         // Corresponding Device Context
     
-    char *spirv_version_str;
+    char *spirv_version_str;   // SPIRV version
 
-    size_t max_workgroup_size;
-    cl_uint max_compute_units;
+    size_t max_workgroup_size; // Max number of Threads per WorkGroup
+    cl_uint max_compute_units; // Number of Compute Units
 
-    cl_bool cl_30_support;
-    cl_bool cl_21_support;
-    cl_bool cl_20_support;
+    cl_bool cl_30_support;     // OpenCL 3 Support
+    cl_bool cl_21_support;     // OpenCL 2.1 Support
+    cl_bool cl_20_support;     // OpenCL 2 Support
 
-    cl_bool is_spirv_khr;
+    cl_bool is_spirv_khr;      // Represents whether SPIRV needs the KHR extension
 
-    cl_bool image_support;
-    cl_bool usm_support;
+    cl_bool image_support;     // Image Support
+    cl_bool usm_support;       // Unified Memory Support
 } ComputeContext;
 
+/**
+ * Prints basic info about the given context.
+ * 
+ * @param ctx A pointer to the context whose info
+ * is printed.
+ */
 static void cl_print_context_info(ComputeContext *ctx) {
     printf("\nCompute Context Info:\n");
 
@@ -141,7 +160,7 @@ static void cl_print_context_info(ComputeContext *ctx) {
 
     if (ctx -> spirv_version_str != NULL) {
         printf("SPIRV version:               %s\n", ctx -> spirv_version_str);
-        printf("SPIRV-KHR Support:           %s\n\n", STRINGIFY(ctx -> is_spirv_khr));
+        printf("SPIRV KHR Extension:         %s\n\n", STRINGIFY(ctx -> is_spirv_khr));
     }
 
     printf("OpenCLv3.0 Support:          %s\n", STRINGIFY(ctx -> cl_30_support));
