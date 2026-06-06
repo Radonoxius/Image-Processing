@@ -32,6 +32,9 @@ static ComputeContext cl_init() {
     if (errcode != CL_SUCCESS) {
         cl_bool r = is_device_extension_available(device, "cl_khr_il_program");
 
+        if (il_str != NULL)
+            free(il_str);
+
         if (r == CL_TRUE) {
             clGetDeviceInfo(device, CL_DEVICE_IL_VERSION_KHR, 0, NULL, &il_str_len);
             il_str = (char *) malloc(il_str_len);
