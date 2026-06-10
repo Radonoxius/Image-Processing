@@ -1,5 +1,0 @@
-kernel void add(
-
-) {
-    
-}
