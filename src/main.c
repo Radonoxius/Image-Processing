@@ -38,17 +38,14 @@ int main() {
 
     cl_mem rgb_img = clCreateImage2D(
         ctx.context,
-        CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR,
+        CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
         &rgb_format,
         img.width,
         img.height,
-        0,
-        NULL,
+        img.width * 4,
+        img.pixels,
         NULL
     );
-    uint8_t *rgb_img_ptr = (uint8_t *) clEnqueueMapImage(queue, rgb_img, CL_TRUE, CL_MAP_WRITE, origin, region, &row_pitch, &slice_pitch, 0, NULL, NULL, NULL);
-    memmove(rgb_img_ptr, img.pixels, pixel_data_len(&img));
-    clEnqueueUnmapMemObject(queue, rgb_img, rgb_img_ptr, 0, NULL, NULL);
 
     cl_mem gs_img = clCreateImage2D(
         ctx.context,
@@ -69,11 +66,11 @@ int main() {
         size_t lwg[2] = { ctx.max_workgroup_size / 2, 1 };
         clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, NULL);
 
-        uint8_t *gray_pixels = (uint8_t *) clEnqueueMapImage(queue, gs_img, CL_TRUE, CL_MAP_READ, origin, region, &gs_row_pitch, &gs_slice_pitch, 0, NULL, NULL, NULL);
+        uint8_t *gray_pixels = (uint8_t *) malloc(grayscale_pixel_data_len(&img));
+        clEnqueueReadImage(queue, gs_img, CL_TRUE, origin, region, img.width, grayscale_pixel_data_len(&img), gray_pixels, 0, NULL, NULL);
         grayscale_png_write(PNG_FILE("watch_gray"), &img, gray_pixels);
         
         free_png_image(img);
-        clEnqueueUnmapMemObject(queue, gs_img, gray_pixels, 0, NULL, NULL);
     } else {
         printf("Failed to read PNG image.\n");
     }
