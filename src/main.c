@@ -53,7 +53,7 @@ int main() {
     cl_mem gs_img = clCreateImage2D(
         ctx.context,
         CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-        &rgb_format,
+        &gs_format,
         img.width,
         img.height,
         img.width,
@@ -61,8 +61,8 @@ int main() {
         NULL
     );
 
-    clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), rgb_img);
-    clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), gs_img);
+    clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), &rgb_img);
+    clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), &gs_img);
 
     if (img.pixels != NULL) {
         size_t gwg[2] = { img.width / 4, img.height };
