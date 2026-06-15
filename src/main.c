@@ -66,18 +66,17 @@ int main() {
     size_t region[3] = { img.width, img.height, 1 };
     size_t row_pitch;
 
-    // Zero-copy map on iGPU: no malloc, no ReadImage transfer
-    uint8_t *gray_pixels = clEnqueueMapImage(
+    uint8_t *gray_pixels = malloc(img.width * img.height);
+    clEnqueueReadImage(
         queue, gs_img, CL_TRUE,
-        CL_MAP_READ,
         origin, region,
-        &row_pitch, NULL,
-        0, NULL, NULL, NULL
+        0, 0,           // pitch=0 → runtime packs tightly into host buffer
+        gray_pixels,
+        0, NULL, NULL
     );
 
     grayscale_png_write(PNG_FILE("watch_gray"), &img, gray_pixels);
-
-    clEnqueueUnmapMemObject(queue, gs_img, gray_pixels, 0, NULL, NULL);
+    free(gray_pixels);
     clFinish(queue);
 
     free_png_image(img);
@@ -86,6 +85,7 @@ int main() {
     clReleaseKernel(to_grayscale);
     clReleaseProgram(program);
     clReleaseCommandQueue(queue);
+
     cl_free_compute_context(ctx);
     return 0;
 }
