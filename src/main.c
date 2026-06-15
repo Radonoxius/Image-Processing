@@ -29,8 +29,8 @@ int main() {
         .image_channel_data_type = CL_UNSIGNED_INT8
     };
 
-    size_t origin[2] = { 0, 0 };
-    size_t region[2] = { img.width, img.height };
+    size_t origin[3] = { 0, 0, 0 };
+    size_t region[3] = { img.width, img.height, 1 };
     size_t row_pitch = img.width * 3;
     size_t gs_row_pitch = img.width;
     size_t slice_pitch = pixel_data_len(&img);
