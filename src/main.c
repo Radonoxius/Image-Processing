@@ -61,8 +61,8 @@ int main() {
         NULL
     );
 
-    clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), &rgb_img);
-    clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), &gs_img);
+    clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), rgb_img);
+    clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), gs_img);
 
     if (img.pixels != NULL) {
         size_t gwg[2] = { img.width / 4, img.height };
