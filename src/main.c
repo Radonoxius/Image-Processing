@@ -42,7 +42,7 @@ int main() {
         &rgb_format,
         img.width,
         img.height,
-        img.width * 3,
+        0,
         NULL,
         NULL
     );
@@ -56,7 +56,7 @@ int main() {
         &gs_format,
         img.width,
         img.height,
-        img.width,
+        0,
         NULL,
         NULL
     );
