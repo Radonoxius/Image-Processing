@@ -67,7 +67,7 @@ int main() {
         clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, NULL, 0, NULL, NULL);
 
         uint8_t *gray_pixels = (uint8_t *) malloc(grayscale_pixel_data_len(&img));
-        clEnqueueReadImage(queue, gs_img, CL_TRUE, origin, region, img.width, grayscale_pixel_data_len(&img), gray_pixels, 0, NULL, NULL);
+        clEnqueueReadImage(queue, gs_img, CL_TRUE, origin, region, 0, 0, gray_pixels, 0, NULL, NULL);
         grayscale_png_write(PNG_FILE("watch_gray"), &img, gray_pixels);
         
         free_png_image(img);
