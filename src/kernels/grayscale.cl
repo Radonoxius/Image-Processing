@@ -23,7 +23,7 @@ kernel void to_grayscale(
         write_imageui(
             luma_img,
             (int2) ((UNROLL * x) + i, y),
-            (uint4) (gray, 0, 0, 0)
+            (uint4) (gray, 0, 0, 255)
         );
     }
 }

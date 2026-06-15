@@ -21,17 +21,17 @@ int main() {
     cl_kernel to_grayscale = clCreateKernel(program, "to_grayscale", NULL);
 
     cl_image_format rgb_format = {
-        .image_channel_order = CL_RGB,
+        .image_channel_order = CL_RGBA,
         .image_channel_data_type = CL_UNSIGNED_INT8
     };
     cl_image_format gs_format = {
-        .image_channel_order = CL_LUMINANCE,
+        .image_channel_order = CL_R,
         .image_channel_data_type = CL_UNSIGNED_INT8
     };
 
     size_t origin[3] = { 0, 0, 0 };
     size_t region[3] = { img.width, img.height, 1 };
-    size_t row_pitch = img.width * 3;
+    size_t row_pitch = img.width * 4;
     size_t gs_row_pitch = img.width;
     size_t slice_pitch = pixel_data_len(&img);
     size_t gs_slice_pitch = grayscale_pixel_data_len(&img);
