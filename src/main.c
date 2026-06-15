@@ -45,7 +45,7 @@ int main() {
     // so MapImage gives a zero-copy pointer into the same physical page
     cl_mem gs_img = clCreateImage2D(
         ctx.context,
-        CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
+        CL_MEM_WRITE_ONLY,
         &gs_format,
         img.width, img.height,
         0, NULL,
