@@ -2,7 +2,7 @@
 
 kernel void to_grayscale(
     const read_only image2d_t rgb_img,
-    global write_only image2d_t luma_img
+    write_only image2d_t luma_img
 ) {
     const int x = (int) get_global_id(0);
     const int y = (int) get_global_id(1);
@@ -23,7 +23,7 @@ kernel void to_grayscale(
         write_imageui(
             luma_img,
             (int2) ((UNROLL * x) + i, y),
-            (uint4) (gray, 0, 0, 255)
+            (uint4) (gray, 0, 0, 0)
         );
     }
 }
