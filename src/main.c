@@ -58,13 +58,13 @@ int main() {
         NULL
     );
 
-    clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), rgb_img);
-    clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), gs_img);
+    clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), &rgb_img);
+    clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), &gs_img);
 
     if (img.pixels != NULL) {
         size_t gwg[2] = { img.width / 4, img.height };
         size_t lwg[2] = { ctx.max_workgroup_size / 2, 1 };
-        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, NULL);
+        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, NULL, 0, NULL, NULL);
 
         uint8_t *gray_pixels = (uint8_t *) malloc(grayscale_pixel_data_len(&img));
         clEnqueueReadImage(queue, gs_img, CL_TRUE, origin, region, img.width, grayscale_pixel_data_len(&img), gray_pixels, 0, NULL, NULL);
