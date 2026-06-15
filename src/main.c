@@ -38,7 +38,7 @@ int main() {
 
     cl_mem rgb_img = clCreateImage2D(
         ctx.context,
-        CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
+        CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY | CL_MEM_COPY_HOST_PTR,
         &rgb_format,
         img.width,
         img.height,
