@@ -119,19 +119,19 @@ static ComputeContext cl_init() {
         for (cl_uint i = 0; i < format_count; i++) {
             if (
                 image_formats[i].image_channel_order == CL_R &&
-                image_formats[i].image_channel_data_type == CL_UNORM_INT8
+                image_formats[i].image_channel_data_type == CL_HALF_FLOAT
             )
                 ctx.image2d_r_support = CL_TRUE;
             
             else if (
                 image_formats[i].image_channel_order == CL_RGB &&
-                image_formats[i].image_channel_data_type == CL_UNORM_INT8
+                image_formats[i].image_channel_data_type == CL_HALF_FLOAT
             )
                 ctx.image2d_rgb_support = CL_TRUE;
 
             else if (
                 image_formats[i].image_channel_order == CL_RGBA &&
-                image_formats[i].image_channel_data_type == CL_UNORM_INT8
+                image_formats[i].image_channel_data_type == CL_HALF_FLOAT
             )
                 ctx.image2d_rgba_support = CL_TRUE;
         }
