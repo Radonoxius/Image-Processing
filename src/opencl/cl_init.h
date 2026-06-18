@@ -116,23 +116,23 @@ static ComputeContext cl_init() {
             NULL
         );
 
-        cl_channel_type required_channels = CL_UNSIGNED_INT8;
+        cl_channel_type required_channel = CL_UNSIGNED_INT8;
         for (cl_uint i = 0; i < format_count; i++) {
             if (
-                image_formats[i].image_channel_order == CL_R &&
-                (image_formats[i].image_channel_data_type & required_channels) == required_channels
+                image_formats[i].image_channel_order == CL_R //&&
+                //image_formats[i].image_channel_data_type == required_channels
             )
                 ctx.image2d_r_support = CL_TRUE;
             
             else if (
-                image_formats[i].image_channel_order == CL_RGB &&
-                (image_formats[i].image_channel_data_type & required_channels) == required_channels
+                image_formats[i].image_channel_order == CL_RGB //&&
+                //image_formats[i].image_channel_data_type == required_channels
             )
                 ctx.image2d_rgb_support = CL_TRUE;
 
             else if (
-                image_formats[i].image_channel_order == CL_RGBA &&
-                (image_formats[i].image_channel_data_type & required_channels) == required_channels
+                image_formats[i].image_channel_order == CL_RGBA //&&
+                //image_formats[i].image_channel_data_type == required_channels
             )
                 ctx.image2d_rgba_support = CL_TRUE;
         }
