@@ -21,9 +21,9 @@ typedef struct ComputeContext {
     cl_bool uses_spirv_khr;     // Represents whether SPIRV uses the KHR extension
 
     cl_bool image_support;      // Image Support
-    cl_bool image2d_r_support;    // CL_R channel 2D-Image Support
-    cl_bool image2d_rgb_support;  // CL_RGB channel 2D-Image Support
-    cl_bool image2d_rgba_support; // CL_RGBA channel 2D-Image Support
+    cl_bool image2d_r_support;    // CL_R channel support for 2D-Images (UNORM_INT8 datatype)
+    cl_bool image2d_rgb_support;  // CL_RGB channel support for 2D-Images (UNORM_INT8 datatype)
+    cl_bool image2d_rgba_support; // CL_RGBA channel support for 2D-Images (UNORM_INT8 datatype)
 
     cl_bool usm_support;        // Represents whether the device supports shared memory
 } ComputeContext;
@@ -119,19 +119,19 @@ static ComputeContext cl_init() {
         for (cl_uint i = 0; i < format_count; i++) {
             if (
                 image_formats[i].image_channel_order == CL_R &&
-                image_formats[i].image_channel_data_type == CL_UNSIGNED_INT8
+                image_formats[i].image_channel_data_type == CL_UNORM_INT8
             )
                 ctx.image2d_r_support = CL_TRUE;
             
             else if (
                 image_formats[i].image_channel_order == CL_RGB &&
-                image_formats[i].image_channel_data_type == CL_UNSIGNED_INT8
+                image_formats[i].image_channel_data_type == CL_UNORM_INT8
             )
                 ctx.image2d_rgb_support = CL_TRUE;
 
             else if (
                 image_formats[i].image_channel_order == CL_RGBA &&
-                image_formats[i].image_channel_data_type == CL_UNSIGNED_INT8
+                image_formats[i].image_channel_data_type == CL_UNORM_INT8
             )
                 ctx.image2d_rgba_support = CL_TRUE;
         }
