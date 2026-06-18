@@ -163,7 +163,7 @@ static void cl_print_context_info(ComputeContext *ctx) {
     printf("Max # Threads per WorkGroup: %lu\n\n", ctx -> max_workgroup_size);
 
     if (ctx -> spirv_version >= 1.0) {
-        printf("SPIRV version:               %f\n", ctx -> spirv_version);
+        printf("SPIRV version:               %.1f\n", ctx -> spirv_version);
         printf("SPIRV KHR Extension:         %s\n\n", STRINGIFY(ctx -> uses_spirv_khr));
     }
 
