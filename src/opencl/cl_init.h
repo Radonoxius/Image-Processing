@@ -100,7 +100,7 @@ static ComputeContext cl_init() {
         cl_uint format_count;
         clGetSupportedImageFormats(
             ctx.context,
-            CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY,
+            CL_MEM_READ_WRITE,
             CL_MEM_OBJECT_IMAGE2D,
             0,
             NULL,
@@ -109,7 +109,7 @@ static ComputeContext cl_init() {
         cl_image_format *image_formats = (cl_image_format *) malloc(format_count * sizeof(cl_image_format));
         clGetSupportedImageFormats(
             ctx.context,
-            CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY,
+            CL_MEM_READ_WRITE,
             CL_MEM_OBJECT_IMAGE2D,
             format_count,
             image_formats,
@@ -136,6 +136,7 @@ static ComputeContext cl_init() {
             )
                 ctx.image2d_rgba_support = CL_TRUE;
         }
+        free(image_formats);
     }
 
     return ctx;
