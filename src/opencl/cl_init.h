@@ -10,19 +10,23 @@ typedef struct ComputeContext {
     cl_device_id device;        // The chosen Platform Device
     cl_context context;         // Corresponding Device Context
     
-    char *spirv_version_str;   // SPIRV version
+    char *spirv_version_str;    // SPIRV version
 
-    size_t max_workgroup_size; // Max number of Threads per WorkGroup
-    cl_uint max_compute_units; // Number of Compute Units
+    size_t max_workgroup_size;  // Max number of Threads per WorkGroup
+    cl_uint max_compute_units;  // Number of Compute Units
 
-    cl_bool cl_30_support;     // OpenCL 3 Support
-    cl_bool cl_21_support;     // OpenCL 2.1 Support
-    cl_bool cl_20_support;     // OpenCL 2 Support
+    cl_bool cl_30_support;      // OpenCL 3 Support
+    cl_bool cl_21_support;      // OpenCL 2.1 Support
+    cl_bool cl_20_support;      // OpenCL 2 Support
 
-    cl_bool is_spirv_khr;      // Represents whether SPIRV needs the KHR extension
+    cl_bool uses_spirv_khr;     // Represents whether SPIRV uses the KHR extension
 
-    cl_bool image_support;     // Image Support
-    cl_bool usm_support;       // Unified Memory Support
+    cl_bool image_support;      // Image Support
+    cl_bool image2d_r_support;    // CL_R channel 2D-Image Support
+    cl_bool image2d_rgb_support;  // CL_RGB channel 2D-Image Support
+    cl_bool image2d_rgba_support; // CL_RGBA channel 2D-Image Support
+
+    cl_bool usm_support;        // Represents whether the device supports shared memory
 } ComputeContext;
 
 /**
@@ -74,7 +78,7 @@ static ComputeContext cl_init() {
             clGetDeviceInfo(device, CL_DEVICE_IL_VERSION_KHR, il_str_len, il_str, NULL);
 
             ctx.spirv_version_str = il_str;
-            ctx.is_spirv_khr = CL_TRUE;
+            ctx.uses_spirv_khr = CL_TRUE;
         }
     } else {
         ctx.spirv_version_str = il_str;
@@ -87,6 +91,51 @@ static ComputeContext cl_init() {
     if (errcode == CL_SUCCESS && CL_VERSION_MAJOR(device_version) == 3)
         ctx.cl_30_support = CL_TRUE;
 
+    if (ctx.cl_30_support == CL_TRUE)
+        ctx.image_support = ctx.image_support &&
+            is_device_feature_available(ctx.device, "__opencl_c_images");
+
+    if (ctx.image_support == CL_TRUE) {
+        cl_uint format_count;
+        clGetSupportedImageFormats(
+            ctx.context,
+            CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY,
+            CL_MEM_OBJECT_IMAGE2D,
+            0,
+            NULL,
+            &format_count
+        );
+        cl_image_format *image_formats = (cl_image_format *) malloc(format_count * sizeof(cl_image_format));
+        clGetSupportedImageFormats(
+            ctx.context,
+            CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY,
+            CL_MEM_OBJECT_IMAGE2D,
+            format_count,
+            image_formats,
+            NULL
+        );
+
+        for (cl_uint i = 0; i < format_count; i++) {
+            if (
+                image_formats[i].image_channel_order == CL_R &&
+                image_formats[i].image_channel_data_type == CL_UNSIGNED_INT8
+            )
+                ctx.image2d_r_support = CL_TRUE;
+            
+            else if (
+                image_formats[i].image_channel_order == CL_RGB &&
+                image_formats[i].image_channel_data_type == CL_UNSIGNED_INT8
+            )
+                ctx.image2d_rgb_support = CL_TRUE;
+
+            else if (
+                image_formats[i].image_channel_order == CL_RGBA &&
+                image_formats[i].image_channel_data_type == CL_UNSIGNED_INT8
+            )
+                ctx.image2d_rgba_support = CL_TRUE;
+        }
+    }
+
     return ctx;
 }
 
@@ -97,7 +146,7 @@ static ComputeContext cl_init() {
  * is printed.
  */
 static void cl_print_context_info(ComputeContext *ctx) {
-    printf("\nCompute Context Info:\n");
+    printf("\nCompute Context Info:\n--------\n");
 
     size_t vendor_name_len;
     clGetPlatformInfo(ctx -> platform, CL_PLATFORM_VENDOR, 0, NULL, &vendor_name_len);
@@ -114,7 +163,7 @@ static void cl_print_context_info(ComputeContext *ctx) {
 
     if (ctx -> spirv_version_str != NULL) {
         printf("SPIRV version:               %s\n", ctx -> spirv_version_str);
-        printf("SPIRV KHR Extension:         %s\n\n", STRINGIFY(ctx -> is_spirv_khr));
+        printf("SPIRV KHR Extension:         %s\n\n", STRINGIFY(ctx -> uses_spirv_khr));
     }
 
     printf("OpenCLv3.0 Support:          %s\n", STRINGIFY(ctx -> cl_30_support));
@@ -122,9 +171,15 @@ static void cl_print_context_info(ComputeContext *ctx) {
     printf("OpenCLv2.0 Support:          %s\n\n", STRINGIFY(ctx -> cl_20_support));
 
     printf("Image Support:               %s\n", STRINGIFY(ctx -> image_support));
-    printf("Unified Memory Support:      %s\n", STRINGIFY(ctx -> usm_support));
+    if (ctx -> image_support) {
+        printf("Image2D CL_R Support:        %s\n", STRINGIFY(ctx -> image2d_r_support));
+        printf("Image2D CL_RGB Support:      %s\n", STRINGIFY(ctx -> image2d_rgb_support));
+        printf("Image2D CL_RGBA Support:     %s\n\n", STRINGIFY(ctx -> image2d_rgba_support));
+    }
 
-    printf("\n");
+    printf("Unified Memory Support:      %s\n--------", STRINGIFY(ctx -> usm_support));
+
+    printf("\n\n");
 }
 
 /**
@@ -136,6 +191,8 @@ static void cl_free_compute_context(ComputeContext ctx) {
     if (ctx.spirv_version_str != NULL)
         free(ctx.spirv_version_str);
 
+    DEVICE_FEATURE_COUNT = 0;
+    free(ALL_DEVICE_FEATURES);
     free(ALL_DEVICE_EXTENSIONS);
 
     clReleaseContext(ctx.context);
