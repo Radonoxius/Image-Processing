@@ -9,8 +9,6 @@ typedef struct ComputeContext {
     cl_platform_id platform;    // The chosen OpenCL Platform
     cl_device_id device;        // The chosen Platform Device
     cl_context context;         // Corresponding Device Context
-    
-    char *spirv_version_str;    // SPIRV version
 
     size_t max_workgroup_size;  // Max number of Threads per WorkGroup
     cl_uint max_compute_units;  // Number of Compute Units
@@ -19,6 +17,7 @@ typedef struct ComputeContext {
     cl_bool cl_21_support;      // OpenCL 2.1 Support
     cl_bool cl_20_support;      // OpenCL 2 Support
 
+    float spirv_version;        // SPIRV version
     cl_bool uses_spirv_khr;     // Represents whether SPIRV uses the KHR extension
 
     cl_bool image_support;      // Image Support
@@ -64,7 +63,7 @@ static ComputeContext cl_init() {
     char *il_str = (char *) malloc(il_str_len);
     cl_int errcode = clGetDeviceInfo(device, CL_DEVICE_IL_VERSION, il_str_len, il_str, NULL);
 
-    if (errcode != CL_SUCCESS || il_str_len < 4) {
+    if (errcode != CL_SUCCESS || il_str_len < 7) {
         cl_bool r = is_device_extension_available(device, "cl_khr_il_program");
 
         if (il_str != NULL) {
@@ -77,14 +76,16 @@ static ComputeContext cl_init() {
             il_str = (char *) malloc(il_str_len);
             clGetDeviceInfo(device, CL_DEVICE_IL_VERSION_KHR, il_str_len, il_str, NULL);
 
-            ctx.spirv_version_str = il_str;
             ctx.uses_spirv_khr = CL_TRUE;
         }
     } else {
-        ctx.spirv_version_str = il_str;
         ctx.cl_21_support = CL_TRUE;
         ctx.cl_20_support = CL_TRUE;
     }
+
+    if (il_str != NULL && il_str_len > 7)
+        ctx.spirv_version = atof((char *) (il_str + 7));
+    free(il_str);
 
     cl_version device_version;
     errcode = clGetDeviceInfo(device, CL_DEVICE_NUMERIC_VERSION, sizeof(cl_version), &device_version, NULL);
@@ -161,8 +162,8 @@ static void cl_print_context_info(ComputeContext *ctx) {
     printf("# Compute Units:             %u\n", ctx -> max_compute_units);
     printf("Max # Threads per WorkGroup: %lu\n\n", ctx -> max_workgroup_size);
 
-    if (ctx -> spirv_version_str != NULL) {
-        printf("SPIRV version:               %s\n", ctx -> spirv_version_str);
+    if (ctx -> spirv_version >= 1.0) {
+        printf("SPIRV version:               %f\n", ctx -> spirv_version);
         printf("SPIRV KHR Extension:         %s\n\n", STRINGIFY(ctx -> uses_spirv_khr));
     }
 
@@ -188,9 +189,6 @@ static void cl_print_context_info(ComputeContext *ctx) {
  * @param ctx The context to be freed
  */
 static void cl_free_compute_context(ComputeContext ctx) {
-    if (ctx.spirv_version_str != NULL)
-        free(ctx.spirv_version_str);
-
     DEVICE_FEATURE_COUNT = 0;
     free(ALL_DEVICE_FEATURES);
     free(ALL_DEVICE_EXTENSIONS);

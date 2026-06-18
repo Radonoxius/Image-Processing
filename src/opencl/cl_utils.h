@@ -59,4 +59,6 @@ static cl_bool is_device_feature_available(cl_device_id device, char *required_f
         if (res != NULL)
             return CL_TRUE;
     }
+
+    return CL_FALSE;
 }
