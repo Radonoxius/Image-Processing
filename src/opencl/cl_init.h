@@ -21,9 +21,9 @@ typedef struct ComputeContext {
     cl_bool uses_spirv_khr;     // Represents whether SPIRV uses the KHR extension
 
     cl_bool image_support;      // Image Support
-    cl_bool image2d_r_support;    // CL_R channel support for 2D-Images (UNORM_INT8 datatype)
-    cl_bool image2d_rgb_support;  // CL_RGB channel support for 2D-Images (UNORM_INT8 datatype)
-    cl_bool image2d_rgba_support; // CL_RGBA channel support for 2D-Images (UNORM_INT8 datatype)
+    cl_bool image2d_r_support;    // CL_R channel support for 2D-Images (UNSIGNED_INT8 datatype)
+    cl_bool image2d_rgb_support;  // CL_RGB channel support for 2D-Images (UNSIGNED_INT8 datatype)
+    cl_bool image2d_rgba_support; // CL_RGBA channel support for 2D-Images (UNSIGNED_INT8 datatype)
 
     cl_bool usm_support;        // Represents whether the device supports shared memory
 } ComputeContext;
