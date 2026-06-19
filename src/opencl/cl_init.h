@@ -21,9 +21,6 @@ typedef struct ComputeContext {
     cl_bool uses_spirv_khr;     // Represents whether SPIRV uses the KHR extension
 
     cl_bool image_support;      // Image Support
-    cl_bool image2d_r_support;    // CL_R channel support for 2D-Images (UNSIGNED_INT8 datatype)
-    cl_bool image2d_rgb_support;  // CL_RGB channel support for 2D-Images (UNSIGNED_INT8 datatype)
-    cl_bool image2d_rgba_support; // CL_RGBA channel support for 2D-Images (UNSIGNED_INT8 datatype)
 
     cl_bool usm_support;        // Represents whether the device supports shared memory
 } ComputeContext;
@@ -96,49 +93,6 @@ static ComputeContext cl_init() {
         ctx.image_support = ctx.image_support &&
             is_device_feature_available(ctx.device, "__opencl_c_images");
 
-    if (ctx.image_support == CL_TRUE) {
-        cl_uint format_count;
-        clGetSupportedImageFormats(
-            ctx.context,
-            CL_MEM_READ_WRITE,
-            CL_MEM_OBJECT_IMAGE2D,
-            0,
-            NULL,
-            &format_count
-        );
-        cl_image_format *image_formats = (cl_image_format *) malloc(format_count * sizeof(cl_image_format));
-        clGetSupportedImageFormats(
-            ctx.context,
-            CL_MEM_READ_WRITE,
-            CL_MEM_OBJECT_IMAGE2D,
-            format_count,
-            image_formats,
-            NULL
-        );
-
-        cl_channel_type required_channel = CL_UNSIGNED_INT8;
-        for (cl_uint i = 0; i < format_count; i++) {
-            if (
-                image_formats[i].image_channel_order == CL_R &&
-                image_formats[i].image_channel_data_type == required_channel
-            )
-                ctx.image2d_r_support = CL_TRUE;
-            
-            else if (
-                image_formats[i].image_channel_order == CL_RGB &&
-                image_formats[i].image_channel_data_type == required_channel
-            )
-                ctx.image2d_rgb_support = CL_TRUE;
-
-            else if (
-                image_formats[i].image_channel_order == CL_RGBA &&
-                image_formats[i].image_channel_data_type == required_channel
-            )
-                ctx.image2d_rgba_support = CL_TRUE;
-        }
-        free(image_formats);
-    }
-
     return ctx;
 }
 
@@ -148,7 +102,7 @@ static ComputeContext cl_init() {
  * @param ctx A pointer to the context whose info
  * is printed.
  */
-static void cl_print_context_info(ComputeContext *ctx) {
+static void cl_print_context_info(const ComputeContext *const ctx) {
     printf("\nCompute Context Info:\n--------\n");
 
     size_t vendor_name_len;
@@ -174,12 +128,6 @@ static void cl_print_context_info(ComputeContext *ctx) {
     printf("OpenCLv2.0 Support:          %s\n\n", STRINGIFY(ctx -> cl_20_support));
 
     printf("Image Support:               %s\n", STRINGIFY(ctx -> image_support));
-    if (ctx -> image_support) {
-        printf("Image2D CL_R Support:        %s\n", STRINGIFY(ctx -> image2d_r_support));
-        printf("Image2D CL_RGB Support:      %s\n", STRINGIFY(ctx -> image2d_rgb_support));
-        printf("Image2D CL_RGBA Support:     %s\n\n", STRINGIFY(ctx -> image2d_rgba_support));
-    }
-
     printf("Unified Memory Support:      %s\n--------", STRINGIFY(ctx -> usm_support));
 
     printf("\n\n");
@@ -191,8 +139,12 @@ static void cl_print_context_info(ComputeContext *ctx) {
  * @param ctx The context to be freed
  */
 static void cl_free_compute_context(ComputeContext ctx) {
+    IMAGE2D_FORMAT_COUNT = 0;
+    free(ALL_IMAGE2D_FORMATS);
+
     DEVICE_FEATURE_COUNT = 0;
     free(ALL_DEVICE_FEATURES);
+
     free(ALL_DEVICE_EXTENSIONS);
 
     clReleaseContext(ctx.context);

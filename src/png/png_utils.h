@@ -22,7 +22,7 @@ typedef struct PNGImage {
  * @param filename The name of the image that will be read.
  * @return Valid `PNGImage` on success, Zeroed struct on failure.
  */
-static PNGImage png_read(const char *filename) {
+static PNGImage png_read(const char *const filename) {
     PNGImage img = { 0 };
 
     FILE *fp = fopen(filename, "rb");
@@ -142,7 +142,7 @@ static PNGImage png_read(const char *filename) {
  * @param img Pointer to your `PNGImage` struct.
  * @return 0 on success, -1 on failure.
  */
-static int png_write(const char *filename, const PNGImage *img) {
+static int png_write(const char *const filename, const PNGImage *const img) {
     if (!img || !img->pixels) {
         fprintf(stderr, "Error: Invalid image data or null pixel buffer.\n");
         return -1;
@@ -242,9 +242,9 @@ static int png_write(const char *filename, const PNGImage *img) {
  * @return 0 on success, -1 on failure.
  */
 static int grayscale_png_write(
-    const char *filename,
-    const PNGImage *img,
-    const uint8_t *gray_pixels
+    const char *const filename,
+    const PNGImage *const img,
+    const uint8_t *const gray_pixels
 ) {
     if (!gray_pixels || img->width == 0 || img->height == 0) {
         fprintf(stderr, "Error: Invalid raw pixel data or dimensions.\n");
@@ -316,12 +316,12 @@ static int grayscale_png_write(
 }
 
 // Returns the length of the raw pixel data
-static uint64_t pixel_data_len(PNGImage *img) {
+static uint64_t pixel_data_len(const PNGImage *const img) {
     return img->channels * img->width * img->height;
 }
 
 // Returns the length of the equivalent grayscale pixel data
-static uint64_t grayscale_pixel_data_len(PNGImage *img) {
+static uint64_t grayscale_pixel_data_len(const PNGImage *const img) {
     return img->width * img->height;
 }
 
