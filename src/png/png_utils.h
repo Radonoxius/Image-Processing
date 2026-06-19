@@ -17,6 +17,21 @@ typedef struct PNGImage {
     uint8_t channels;  // 3 for RGB, 4 for RGBA
 } PNGImage;
 
+// Returns the length of the raw pixel data
+static uint64_t pixel_data_len(const PNGImage *const img) {
+    return img->channels * img->width * img->height;
+}
+
+// Returns the length of the equivalent grayscale pixel data
+static uint64_t grayscale_pixel_data_len(const PNGImage *const img) {
+    return img->width * img->height;
+}
+
+// Free the allocated raw pixels
+static void free_png_image(PNGImage img) {
+    free(img.pixels);
+}
+
 /**
  * Reads a PNG file and returns the `PNGImage` struct
  * @param filename The name of the image that will be read.
@@ -313,19 +328,4 @@ static int grayscale_png_write(
     fclose(fp);
 
     return 0;
-}
-
-// Returns the length of the raw pixel data
-static uint64_t pixel_data_len(const PNGImage *const img) {
-    return img->channels * img->width * img->height;
-}
-
-// Returns the length of the equivalent grayscale pixel data
-static uint64_t grayscale_pixel_data_len(const PNGImage *const img) {
-    return img->width * img->height;
-}
-
-// Free the allocated raw pixels
-static void free_png_image(PNGImage img) {
-    free(img.pixels);
 }
