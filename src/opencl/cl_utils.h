@@ -19,7 +19,7 @@ static char *ALL_DEVICE_EXTENSIONS = NULL;
  * 
  * @return `CL_TRUE` if supported, else `CL_FALSE`
  */
-static cl_bool is_device_extension_available(const cl_device_id device, const char *const required_extension_name) {
+static cl_bool cl_device_extension_available(const cl_device_id device, const char *const required_extension_name) {
     if (ALL_DEVICE_EXTENSIONS == NULL) {
         size_t extensions_str_len;
         clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS, 0, NULL, &extensions_str_len);
@@ -46,7 +46,7 @@ static size_t DEVICE_FEATURE_COUNT = 0;
  * 
  * @return `CL_TRUE` if supported, else `CL_FALSE`
  */
-static cl_bool is_device_feature_available(const ComputeContext *const ctx, const char *const required_feature_name) {
+static cl_bool cl_device_feature_available(const ComputeContext *const ctx, const char *const required_feature_name) {
     if (ctx -> cl_30_support == CL_TRUE) {
         if (ALL_DEVICE_FEATURES == NULL) {
             clGetDeviceInfo(ctx -> device, CL_DEVICE_OPENCL_C_FEATURES, 0, NULL, &DEVICE_FEATURE_COUNT);
@@ -78,7 +78,7 @@ static cl_uint IMAGE2D_FORMAT_COUNT = 0;
  * 
  * @return `CL_TRUE` if supported, else `CL_FALSE`
  */
-static cl_bool is_image2d_format_available(
+static cl_bool cl_image2d_format_available(
     const ComputeContext *const ctx,
     const cl_channel_order channel,
     const cl_channel_type channel_datatype

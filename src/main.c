@@ -16,8 +16,8 @@ int main() {
     cl_int err;
     cl_command_queue queue = clCreateCommandQueue(ctx.context, ctx.device, 0, NULL);
 
-    const uint32_t *spirv = (uint32_t *) read_file_bytes(SPIRV_PROGRAM("grayscale"));
-    const size_t spirv_sz = get_file_size_bytes(SPIRV_PROGRAM("grayscale"));
+    const uint32_t *spirv = (uint32_t *) file_read_bytes(SPIRV_PROGRAM("grayscale"));
+    const size_t spirv_sz = file_get_size_bytes(SPIRV_PROGRAM("grayscale"));
     cl_program program = clCreateProgramWithIL(ctx.context, spirv, spirv_sz, NULL);
     clBuildProgram(program, 1, &ctx.device, NULL, NULL, NULL);
     cl_kernel to_grayscale = clCreateKernel(program, "to_grayscale", NULL);
@@ -75,11 +75,11 @@ int main() {
         0, NULL, NULL
     );
 
-    grayscale_png_write(PNG_FILE("watch_gray"), &img, gray_pixels);
+    png_write_grayscale(PNG_FILE("watch_gray"), &img, gray_pixels);
     free(gray_pixels);
     clFinish(queue);
 
-    free_png_image(img);
+    png_free(img);
     clReleaseMemObject(rgb_img);
     clReleaseMemObject(gs_img);
     clReleaseKernel(to_grayscale);

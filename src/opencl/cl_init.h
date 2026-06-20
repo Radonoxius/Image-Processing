@@ -39,7 +39,7 @@ static ComputeContext cl_init() {
     cl_int errcode = clGetDeviceInfo(device, CL_DEVICE_IL_VERSION, il_str_len, il_str, NULL);
 
     if (errcode != CL_SUCCESS || il_str_len < 7) {
-        cl_bool r = is_device_extension_available(device, "cl_khr_il_program");
+        cl_bool r = cl_device_extension_available(device, "cl_khr_il_program");
 
         if (il_str != NULL) {
             free(il_str);
@@ -69,7 +69,7 @@ static ComputeContext cl_init() {
 
     if (ctx.cl_30_support == CL_TRUE)
         ctx.image_support = ctx.image_support &&
-            is_device_feature_available(&ctx, "__opencl_c_images");
+            cl_device_feature_available(&ctx, "__opencl_c_images");
 
     return ctx;
 }

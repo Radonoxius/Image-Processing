@@ -18,18 +18,19 @@ typedef struct PNGImage {
 } PNGImage;
 
 // Returns the length of the raw pixel data
-static uint64_t pixel_data_len(const PNGImage *const img) {
+static uint64_t png_pixel_data_len(const PNGImage *const img) {
     return img->channels * img->width * img->height;
 }
 
 // Returns the length of the equivalent grayscale pixel data
-static uint64_t grayscale_pixel_data_len(const PNGImage *const img) {
+static uint64_t png_grayscale_pixel_data_len(const PNGImage *const img) {
     return img->width * img->height;
 }
 
 // Free the allocated raw pixels
-static void free_png_image(PNGImage img) {
-    free(img.pixels);
+static void png_free(PNGImage img) {
+    if (img.pixels != NULL)
+        free(img.pixels);
 }
 
 /**
@@ -152,6 +153,215 @@ static PNGImage png_read(const char *const filename) {
 }
 
 /**
+ * Reads a PNG file's metadata and returns the `PNGImage` struct without fetching pixel data.
+ * @param filename The name of the image that will be read.
+ * @return Valid `PNGImage` (pixels = NULL) on success, Zeroed struct on failure.
+ * 
+ * #### Use this when dealing with iGPUs
+ */
+static PNGImage png_get_info(const char *const filename) {
+    PNGImage img = { 0 };
+
+    FILE *fp = fopen(filename, "rb");
+    if (!fp) {
+        perror("Error opening file");
+        return img;
+    }
+
+    // Verify the PNG signature (first 8 bytes)
+    unsigned char header[8];
+    if (fread(header, 1, 8, fp) != 8 || png_sig_cmp(header, 0, 8)) {
+        fprintf(stderr, "Error: File %s is not a valid PNG.\n", filename);
+        fclose(fp);
+        return img;
+    }
+
+    // Initialize libpng structures
+    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (!png_ptr) {
+        fprintf(stderr, "Error: png_create_read_struct failed.\n");
+        fclose(fp);
+        return img;
+    }
+
+    png_infop info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+        fprintf(stderr, "Error: png_create_info_struct failed.\n");
+        png_destroy_read_struct(&png_ptr, NULL, NULL);
+        fclose(fp);
+        return img;
+    }
+
+    // Set up error handling (libpng uses setjmp/longjmp)
+    if (setjmp(png_jmpbuf(png_ptr))) {
+        fprintf(stderr, "Error during PNG info reading.\n");
+        png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+        fclose(fp);
+        return img;
+    }
+
+    // Initialize PNG I/O
+    png_init_io(png_ptr, fp);
+    // Tell libpng we already read the first 8 bytes signature
+    png_set_sig_bytes(png_ptr, 8);
+
+    // Read the image metadata
+    png_read_info(png_ptr, info_ptr);
+
+    // Get basic image info
+    png_uint_32 width = png_get_image_width(png_ptr, info_ptr);
+    png_uint_32 height = png_get_image_height(png_ptr, info_ptr);
+    png_byte color_type = png_get_color_type(png_ptr, info_ptr);
+    png_byte bit_depth = png_get_bit_depth(png_ptr, info_ptr);
+
+    // --- Standardizing the Image Format ---
+    // These must be kept so `channels` reflects the format png_read would output
+    if (color_type == PNG_COLOR_TYPE_PALETTE) {
+        png_set_palette_to_rgb(png_ptr);
+    }
+    if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8) {
+        png_set_expand_gray_1_2_4_to_8(png_ptr);
+    }
+    if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)) {
+        png_set_tRNS_to_alpha(png_ptr);
+    }
+    if (bit_depth == 16) {
+        png_set_strip_16(png_ptr);
+    }
+    if (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
+        png_set_gray_to_rgb(png_ptr);
+    }
+
+    // Update the image info after setting transformations
+    png_read_update_info(png_ptr, info_ptr);
+    
+    // Re-read channels to see what we transformed it into (typically 3 or 4)
+    uint8_t channels = (uint8_t) png_get_channels(png_ptr, info_ptr);
+
+    // Populate the struct fields
+    img.width = width;
+    img.height = height;
+    img.channels = channels;
+    img.pixels = NULL; // Explicitly set to NULL since no data is read
+
+    // Clean up libpng structures and close the file
+    png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+    fclose(fp);
+
+    return img;
+}
+
+/**
+ * Reads pixel data from a PNG file and populates a pre-allocated buffer.
+ * @param filename The name of the image that will be read.
+ * @param pixel_buf Pre-allocated memory block to receive the raw pixel data.
+ * @return 1 on success, 0 on failure.
+ * 
+ * #### Use this when dealing with iGPUs
+ */
+static int png_get_pixeldata(const char *const filename, uint8_t *pixel_buf) {
+    if (!filename || !pixel_buf) {
+        fprintf(stderr, "Error: Invalid arguments passed to png_get_pixeldata.\n");
+        return 0;
+    }
+
+    FILE *fp = fopen(filename, "rb");
+    if (!fp) {
+        perror("Error opening file");
+        return 0;
+    }
+
+    // Verify the PNG signature (first 8 bytes)
+    unsigned char header[8];
+    if (fread(header, 1, 8, fp) != 8 || png_sig_cmp(header, 0, 8)) {
+        fprintf(stderr, "Error: File %s is not a valid PNG.\n", filename);
+        fclose(fp);
+        return 0;
+    }
+
+    // Initialize libpng structures
+    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (!png_ptr) {
+        fprintf(stderr, "Error: png_create_read_struct failed.\n");
+        fclose(fp);
+        return 0;
+    }
+
+    png_infop info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+        fprintf(stderr, "Error: png_create_info_struct failed.\n");
+        png_destroy_read_struct(&png_ptr, NULL, NULL);
+        fclose(fp);
+        return 0;
+    }
+
+    // Set up error handling
+    if (setjmp(png_jmpbuf(png_ptr))) {
+        fprintf(stderr, "Error during PNG pixel reading.\n");
+        png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+        fclose(fp);
+        return 0;
+    }
+
+    // Initialize PNG I/O
+    png_init_io(png_ptr, fp);
+    png_set_sig_bytes(png_ptr, 8);
+
+    // Read the image metadata
+    png_read_info(png_ptr, info_ptr);
+
+    // --- Standardizing the Image Format ---
+    png_byte color_type = png_get_color_type(png_ptr, info_ptr);
+    png_byte bit_depth = png_get_bit_depth(png_ptr, info_ptr);
+
+    if (color_type == PNG_COLOR_TYPE_PALETTE) {
+        png_set_palette_to_rgb(png_ptr);
+    }
+    if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8) {
+        png_set_expand_gray_1_2_4_to_8(png_ptr);
+    }
+    if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)) {
+        png_set_tRNS_to_alpha(png_ptr);
+    }
+    if (bit_depth == 16) {
+        png_set_strip_16(png_ptr);
+    }
+    if (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA) {
+        png_set_gray_to_rgb(png_ptr);
+    }
+
+    // Apply the format updates
+    png_read_update_info(png_ptr, info_ptr);
+
+    // Get updated dimensions straight from the file stream
+    png_uint_32 height = png_get_image_height(png_ptr, info_ptr);
+    size_t row_bytes = png_get_rowbytes(png_ptr, info_ptr);
+
+    // Setup an array of pointers mapping directly into the caller's pre-allocated `pixel_buf`
+    png_bytepp row_pointers = (png_bytepp)malloc(sizeof(png_bytep) * height);
+    if (!row_pointers) {
+        fprintf(stderr, "Error: Failed to allocate row pointers.\n");
+        png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+        fclose(fp);
+        return 0;
+    }
+
+    for (png_uint_32 i = 0; i < height; i++) {
+        row_pointers[i] = pixel_buf + (i * row_bytes);
+    }
+
+    // Read the actual data straight into your external buffer
+    png_read_image(png_ptr, row_pointers);
+
+    // Clean up
+    free(row_pointers);
+    png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+    fclose(fp);
+
+    return 1; // Success
+}
+
+/**
  * Writes a PNG image to disk.
  * @param filename The path/name where the image will be saved.
  * @param img Pointer to your `PNGImage` struct.
@@ -256,7 +466,7 @@ static int png_write(const char *const filename, const PNGImage *const img) {
  * @param gray_pixels Pointer to the new greyscale pixels.
  * @return 0 on success, -1 on failure.
  */
-static int grayscale_png_write(
+static int png_write_grayscale(
     const char *const filename,
     const PNGImage *const img,
     const uint8_t *const gray_pixels

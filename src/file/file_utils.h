@@ -18,7 +18,7 @@
  * #### NOTE: Returned contents are invalid if an internal
  * failure was encountered
  */
-static uint8_t *read_file_bytes(const char *const filename) {
+static uint8_t *file_read_bytes(const char *const filename) {
     FILE *fp = fopen(filename, "rb");
 
     int size = fseek(fp, 0, SEEK_END);
@@ -40,7 +40,7 @@ static uint8_t *read_file_bytes(const char *const filename) {
  * #### NOTE: Returned size is invalid if an internal
  * failure was encountered
  */
-static size_t get_file_size_bytes(const char *const filename) {
+static size_t file_get_size_bytes(const char *const filename) {
     FILE *fp = fopen(filename, "rb");
 
     int size = fseek(fp, 0, SEEK_END);
