@@ -1,5 +1,6 @@
 #include "file/file_utils.h"
 #include "png/png_utils.h"
+
 #include "opencl/cl_init.h"
 
 int main() {
@@ -30,6 +31,8 @@ int main() {
         .image_channel_order     = CL_R,
         .image_channel_data_type = CL_UNSIGNED_INT8
     };
+
+    printf("\n%s\n", STRINGIFY(cl_image2d_format_available(&ctx, CL_R, CL_UNSIGNED_INT8)));
 
     cl_mem rgb_img = clCreateImage2D(
         ctx.context,
