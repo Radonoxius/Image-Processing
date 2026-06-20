@@ -21,7 +21,8 @@ int main() {
     const size_t spirv_sz = file_get_size_bytes(SPIRV_PROGRAM("grayscale"));
     cl_program program = clCreateProgramWithIL(ctx.context, spirv, spirv_sz, NULL);
     clBuildProgram(program, 1, &ctx.device, NULL, NULL, NULL);
-    cl_kernel to_grayscale = clCreateKernel(program, "to_grayscale", NULL);
+    cl_kernel to_grayscale = clCreateKernel(program, "to_grayscale", &err);
+    printf("%d\n", err);
 
     cl_image_format rgb_format = {
         .image_channel_order     = CL_RGBA,
@@ -54,8 +55,7 @@ int main() {
     );
 
     clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), &rgb_img);
-    err = clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), &gs_img);
-    printf("%d\n", err);
+    clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), &gs_img);
 
     // One work item per pixel; no width/4 truncation
     size_t gwg[2] = { img.width, img.height };
