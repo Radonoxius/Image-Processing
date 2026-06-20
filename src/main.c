@@ -54,13 +54,12 @@ int main() {
     );
 
     clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), &rgb_img);
-    clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), &gs_img);
+    err = clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), &gs_img);
+    printf("%d\n", err);
 
     // One work item per pixel; no width/4 truncation
     size_t gwg[2] = { img.width, img.height };
-    err = clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, NULL, 0, NULL, NULL);
-    if (err != CL_SUCCESS)
-        printf("%x\n", err);
+    clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, NULL, 0, NULL, NULL);
     
 
     // Finish before mapping
