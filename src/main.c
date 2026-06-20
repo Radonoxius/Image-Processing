@@ -17,8 +17,9 @@ int main() {
     cl_int err;
     cl_command_queue queue = clCreateCommandQueue(ctx.context, ctx.device, 0, NULL);
 
-    const uint32_t *spirv = (uint32_t *) file_read_bytes(SPIRV_PROGRAM("grayscale"));
+    const uint8_t *spirv = file_read_bytes(SPIRV_PROGRAM("grayscale"));
     const size_t spirv_sz = file_get_size_bytes(SPIRV_PROGRAM("grayscale"));
+    printf("%d\n", spirv_sz);
     cl_program program = clCreateProgramWithIL(ctx.context, spirv, spirv_sz, &err);
     printf("%d\n", err);
     clBuildProgram(program, 1, &ctx.device, NULL, NULL, NULL);
