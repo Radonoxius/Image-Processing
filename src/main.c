@@ -19,10 +19,10 @@ int main() {
 
     const uint32_t *spirv = (uint32_t *) file_read_bytes(SPIRV_PROGRAM("grayscale"));
     const size_t spirv_sz = file_get_size_bytes(SPIRV_PROGRAM("grayscale"));
-    cl_program program = clCreateProgramWithIL(ctx.context, spirv, spirv_sz, NULL);
-    clBuildProgram(program, 1, &ctx.device, NULL, NULL, NULL);
-    cl_kernel to_grayscale = clCreateKernel(program, "to_grayscale", &err);
+    cl_program program = clCreateProgramWithIL(ctx.context, spirv, spirv_sz, &err);
     printf("%d\n", err);
+    clBuildProgram(program, 1, &ctx.device, NULL, NULL, NULL);
+    cl_kernel to_grayscale = clCreateKernel(program, "to_grayscale", NULL);
 
     cl_image_format rgb_format = {
         .image_channel_order     = CL_RGBA,
