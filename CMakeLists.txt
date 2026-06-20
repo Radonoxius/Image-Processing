@@ -44,3 +44,10 @@ target_link_libraries(main PRIVATE
     PNG::PNG
     OpenCL::OpenCL
 )
+
+add_custom_command(TARGET main POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/kernels"
+        "${CMAKE_CURRENT_BINARY_DIR}/kernels"
+    COMMENT "Copying kernels directory to the build folder..."
+)

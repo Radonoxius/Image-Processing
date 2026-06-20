@@ -79,7 +79,8 @@ int main() {
     free(gray_pixels);
     clFinish(queue);
 
-    png_free(img);
+    png_free_pixels(img);
+
     clReleaseMemObject(rgb_img);
     clReleaseMemObject(gs_img);
     clReleaseKernel(to_grayscale);

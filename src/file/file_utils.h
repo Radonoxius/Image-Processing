@@ -21,7 +21,7 @@
 static uint8_t *file_read_bytes(const char *const filename) {
     FILE *fp = fopen(filename, "rb");
 
-    int size = fseek(fp, 0, SEEK_END);
+    size_t size = fseek(fp, 0, SEEK_END);
     fseek(fp, 0, SEEK_SET);
 
     uint8_t *bin = (uint8_t *) malloc(size);
@@ -43,7 +43,7 @@ static uint8_t *file_read_bytes(const char *const filename) {
 static size_t file_get_size_bytes(const char *const filename) {
     FILE *fp = fopen(filename, "rb");
 
-    int size = fseek(fp, 0, SEEK_END);
+    size_t size = fseek(fp, 0, SEEK_END);
     fseek(fp, 0, SEEK_SET);
 
     fclose(fp);

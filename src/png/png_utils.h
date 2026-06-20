@@ -28,7 +28,7 @@ static uint64_t png_grayscale_pixel_data_len(const PNGImage *const img) {
 }
 
 // Free the allocated raw pixels
-static void png_free(PNGImage img) {
+static void png_free_pixels(PNGImage img) {
     if (img.pixels != NULL)
         free(img.pixels);
 }
