@@ -32,8 +32,6 @@ int main() {
         .image_channel_data_type = CL_UNSIGNED_INT8
     };
 
-    printf("\n%s\n", STRINGIFY(cl_image2d_format_available(&ctx, CL_R, CL_UNSIGNED_INT8)));
-
     cl_mem rgb_img = clCreateImage2D(
         ctx.context,
         CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -60,7 +58,10 @@ int main() {
 
     // One work item per pixel; no width/4 truncation
     size_t gwg[2] = { img.width, img.height };
-    clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, NULL, 0, NULL, NULL);
+    err = clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, NULL, 0, NULL, NULL);
+    if (err != CL_SUCCESS)
+        printf("%x\n", err);
+    
 
     // Finish before mapping
     clFinish(queue);
