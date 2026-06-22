@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-static cl_platform_id cl_choose_platform_id() {
+static cl_platform_id choose_platform_id() {
     cl_platform_id chosen_platform = NULL;
 
     cl_uint num_platforms;
@@ -47,7 +47,7 @@ static cl_platform_id cl_choose_platform_id() {
     return chosen_platform;
 }
 
-static cl_device_id cl_choose_device_id(const cl_platform_id chosen_platform) {
+static cl_device_id choose_device_id(const cl_platform_id chosen_platform) {
     cl_device_id chosen_device = NULL;
 
     cl_uint num_devices;

@@ -5,10 +5,15 @@
 #include <time.h>
 
 int main() {
-    ComputeContext ctx = cl_init();
-    cl_print_context_info(&ctx);
+    ComputeContext ctx = init();
+    print_context_info(&ctx, CL_TRUE);
 
-    if (ctx.usm_support == CL_TRUE) {
+    if (
+        IGPU_CL30_SPIRV_IMAGE_PROFILE(&ctx) &&
+
+        is_image2d_format_available(&ctx, CL_R, CL_UNSIGNED_INT8) &&
+        is_image2d_format_available(&ctx, CL_RGBA, CL_UNSIGNED_INT8)
+    ) {
         PNGImage img = png_read(PNG_FILE("watch"));
 
         cl_int err;
@@ -87,6 +92,6 @@ int main() {
         clReleaseCommandQueue(queue);
     }
 
-    cl_free_compute_context(ctx);
+    free_compute_context(ctx);
     return 0;
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cl_init_utils.h"
-#include "cl_utils.h"
+#include "cl_profiles.h"
 
 /**
  * Initializes a simple OpenCL environment.
@@ -11,9 +11,9 @@
  * 
  * @return Valid `ComputeContext` on success, Zeroed struct on failure.
  */
-static ComputeContext cl_init() {
-    const cl_platform_id platform = cl_choose_platform_id();
-    cl_device_id device = cl_choose_device_id(platform);
+static ComputeContext init() {
+    const cl_platform_id platform = choose_platform_id();
+    cl_device_id device = choose_device_id(platform);
     
     const cl_context_properties context_properties[3] = {
         CL_CONTEXT_PLATFORM,
@@ -30,21 +30,19 @@ static ComputeContext cl_init() {
     clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &ctx.max_workgroup_size, NULL);
     clGetDeviceInfo(device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &ctx.max_compute_units, NULL);
 
-    clGetDeviceInfo(device, CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &ctx.image_support, NULL);
-    clGetDeviceInfo(device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof(cl_bool), &ctx.usm_support, NULL);
+    cl_bool img_s;
+    clGetDeviceInfo(device, CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &img_s, NULL);
+    ctx.image_support = (uint8_t) img_s;
+    cl_bool usm_s;
+    clGetDeviceInfo(device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof(cl_bool), &usm_s, NULL);
+    ctx.usm_support = (uint8_t) usm_s;
 
     size_t il_str_len;
-    clGetDeviceInfo(device, CL_DEVICE_IL_VERSION, 0, NULL, &il_str_len);
-    char *il_str = (char *) malloc(il_str_len);
-    cl_int errcode = clGetDeviceInfo(device, CL_DEVICE_IL_VERSION, il_str_len, il_str, NULL);
+    cl_int errcode = clGetDeviceInfo(device, CL_DEVICE_IL_VERSION, 0, NULL, &il_str_len);
+    char *il_str = NULL;
 
     if (errcode != CL_SUCCESS || il_str_len < 7) {
-        cl_bool r = cl_device_extension_available(device, "cl_khr_il_program");
-
-        if (il_str != NULL) {
-            free(il_str);
-            il_str = NULL;
-        }
+        cl_bool r = is_device_extension_available(device, "cl_khr_il_program");
 
         if (r == CL_TRUE) {
             clGetDeviceInfo(device, CL_DEVICE_IL_VERSION_KHR, 0, NULL, &il_str_len);
@@ -54,22 +52,29 @@ static ComputeContext cl_init() {
             ctx.uses_spirv_khr = CL_TRUE;
         }
     } else {
+        il_str = (char *) malloc(il_str_len);
+        clGetDeviceInfo(device, CL_DEVICE_IL_VERSION, il_str_len, il_str, NULL);
+
         ctx.cl_21_support = CL_TRUE;
         ctx.cl_20_support = CL_TRUE;
     }
 
     if (il_str != NULL && il_str_len > 7)
-        ctx.spirv_version = atof((char *) (il_str + 7));
-    free(il_str);
+        ctx.spirv_versions_str = il_str;
 
     cl_version device_version;
     errcode = clGetDeviceInfo(device, CL_DEVICE_NUMERIC_VERSION, sizeof(cl_version), &device_version, NULL);
     if (errcode == CL_SUCCESS && CL_VERSION_MAJOR(device_version) == 3)
         ctx.cl_30_support = CL_TRUE;
 
-    if (ctx.cl_30_support == CL_TRUE)
+    if (ctx.cl_30_support == CL_TRUE) {
         ctx.image_support = ctx.image_support &&
-            cl_device_feature_available(&ctx, "__opencl_c_images");
+            is_device_feature_available(&ctx, "__opencl_c_images");
+
+        cl_bool nuw_s;
+        clGetDeviceInfo(device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof(cl_bool), &nuw_s, NULL);
+        ctx.non_uniform_workgroup_support = (uint8_t) nuw_s;
+    }
 
     return ctx;
 }
@@ -80,7 +85,7 @@ static ComputeContext cl_init() {
  * @param ctx A pointer to the context whose info
  * is printed.
  */
-static void cl_print_context_info(const ComputeContext *const ctx) {
+static void print_context_info(const ComputeContext *const ctx, uint8_t show_profile_support) {
     printf("\nCompute Context Info:\n--------\n");
 
     size_t vendor_name_len;
@@ -94,10 +99,11 @@ static void cl_print_context_info(const ComputeContext *const ctx) {
 
     printf("[%s] %s\n\n", vendor_name, device_name);
     printf("# Compute Units:             %u\n", ctx -> max_compute_units);
-    printf("Max # Threads per WorkGroup: %lu\n\n", ctx -> max_workgroup_size);
+    printf("Max # Threads per WorkGroup: %lu\n", ctx -> max_workgroup_size);
+    printf("Non-Uniform WorkGroups:      %s\n\n", STRINGIFY(ctx -> non_uniform_workgroup_support));
 
-    if (ctx -> spirv_version >= 1.0) {
-        printf("SPIRV version:               %.1f\n", ctx -> spirv_version);
+    if (ctx -> spirv_versions_str != NULL) {
+        printf("SPIRV versions:              %s\n", ctx -> spirv_versions_str);
         printf("SPIRV KHR Extension:         %s\n\n", STRINGIFY(ctx -> uses_spirv_khr));
     }
 
@@ -106,7 +112,21 @@ static void cl_print_context_info(const ComputeContext *const ctx) {
     printf("OpenCLv2.0 Support:          %s\n\n", STRINGIFY(ctx -> cl_20_support));
 
     printf("Image Support:               %s\n", STRINGIFY(ctx -> image_support));
-    printf("Unified Memory Support:      %s\n--------", STRINGIFY(ctx -> usm_support));
+
+    if (show_profile_support == CL_TRUE) {
+        printf("Unified Memory Support:      %s\n\n", STRINGIFY(ctx -> usm_support));
+        printf("Supported Profiles:\n");
+        printf("IGPU_CL30_SPIRV_IMAGE_PROFILE:    %s\n", STRINGIFY(IGPU_CL30_SPIRV_IMAGE_PROFILE(ctx)));
+        printf("IGPU_CL30_KHRSPIRV_IMAGE_PROFILE: %s\n", STRINGIFY(IGPU_CL30_KHRSPIRV_IMAGE_PROFILE(ctx)));
+        printf("IGPU_CL30_IMAGE_PROFILE:          %s\n", STRINGIFY(IGPU_CL30_IMAGE_PROFILE(ctx)));
+        printf("IGPU_IMAGE_PROFILE:               %s\n\n", STRINGIFY(IGPU_IMAGE_PROFILE(ctx)));
+        printf("DGPU_CL30_SPIRV_IMAGE_PROFILE:    %s\n", STRINGIFY(DGPU_CL30_SPIRV_IMAGE_PROFILE(ctx)));
+        printf("DGPU_CL30_KHRSPIRV_IMAGE_PROFILE: %s\n", STRINGIFY(DGPU_CL30_KHRSPIRV_IMAGE_PROFILE(ctx)));
+        printf("DGPU_CL30_IMAGE_PROFILE:          %s\n", STRINGIFY(DGPU_CL30_IMAGE_PROFILE(ctx)));
+        printf("DGPU_IMAGE_PROFILE:               %s\n--------", STRINGIFY(DGPU_IMAGE_PROFILE(ctx)));
+    }
+    else
+        printf("Unified Memory Support:      %s\n--------", STRINGIFY(ctx -> usm_support));
 
     printf("\n\n");
 }
@@ -116,7 +136,7 @@ static void cl_print_context_info(const ComputeContext *const ctx) {
  * 
  * @param ctx The context to be freed
  */
-static void cl_free_compute_context(ComputeContext ctx) {
+static void free_compute_context(ComputeContext ctx) {
     IMAGE2D_FORMAT_COUNT = 0;
     free(ALL_IMAGE2D_FORMATS);
 
@@ -124,6 +144,9 @@ static void cl_free_compute_context(ComputeContext ctx) {
     free(ALL_DEVICE_FEATURES);
 
     free(ALL_DEVICE_EXTENSIONS);
+
+    if (ctx.spirv_versions_str != NULL)
+        free(ctx.spirv_versions_str);
 
     clReleaseContext(ctx.context);
     clReleaseDevice(ctx.device);
