@@ -1,13 +1,13 @@
 #define UNROLL 4
 
 kernel void to_grayscale(
-    const read_only image2d_t rgb_img,
+    read_only image2d_t rgb_img,
     write_only image2d_t luma_img
 ) {
     const int x = (int) get_global_id(0);
     const int y = (int) get_global_id(1);
 
-    #pragma unroll 4
+    #pragma unroll 2
     for(uchar i = 0; i < UNROLL; i++) {
         uint4 rgb_pixel = read_imageui(
             rgb_img,
