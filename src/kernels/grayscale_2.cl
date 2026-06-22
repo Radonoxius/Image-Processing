@@ -7,32 +7,60 @@ kernel void to_grayscale(
 
     uint4 rgb_pixel0 = read_imageui(
         rgb_img,
-        (int2) (x, y)
+        (int2) (4 * x, y)
     );
-    //uint4 rgb_pixel1 = read_imageui(
-    //    rgb_img,
-    //    (int2) (2 * x + 1, y)
-    //);
+    uint4 rgb_pixel1 = read_imageui(
+        rgb_img,
+        (int2) (4 * x + 1, y)
+    );
+    uint4 rgb_pixel2 = read_imageui(
+        rgb_img,
+        (int2) (4 * x + 2, y)
+    );
+    uint4 rgb_pixel3 = read_imageui(
+        rgb_img,
+        (int2) (4 * x + 3, y)
+    );
 
     uint gray0 = (
         rgb_pixel0.r * 77 +
         rgb_pixel0.g * 150 +
         rgb_pixel0.b * 29
     ) >> 8;
-    //uint gray1 = (
-    //    rgb_pixel1.r * 77 +
-    //    rgb_pixel1.g * 150 +
-    //    rgb_pixel1.b * 29
-    //) >> 8;
+    uint gray1 = (
+        rgb_pixel1.r * 77 +
+        rgb_pixel1.g * 150 +
+        rgb_pixel1.b * 29
+    ) >> 8;
+    uint gray2 = (
+        rgb_pixel2.r * 77 +
+        rgb_pixel2.g * 150 +
+        rgb_pixel2.b * 29
+    ) >> 8;
+    uint gray3 = (
+        rgb_pixel3.r * 77 +
+        rgb_pixel3.g * 150 +
+        rgb_pixel3.b * 29
+    ) >> 8;
 
     write_imageui(
         luma_img,
-        (int2) (x, y),
-        (uint4) (gray0, gray0, gray0, 255)
+        (int2) (4 * x, y),
+        (uint4) (gray0, 0, 0, 255)
     );
-    //write_imageui(
-    //    luma_img,
-    //    (int2) (2 * x + 1, y),
-    //    (uint4) (gray1, gray1, gray1, 255)
-    //);
+    write_imageui(
+        luma_img,
+        (int2) (4 * x + 1, y),
+        (uint4) (gray1, 0, 0, 255)
+    );
+    write_imageui(
+        luma_img,
+        (int2) (4 * x + 2, y),
+        (uint4) (gray2, 0, 0, 255)
+    );
+    write_imageui(
+        luma_img,
+        (int2) (4 * x + 3, y),
+        (uint4) (gray3, 0, 0, 255)
+    );
 }

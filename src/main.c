@@ -59,7 +59,7 @@ int main() {
         clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), &rgb_img);
         clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), &gs_img);
 
-        size_t gwg[2] = { img.width, img.height };
+        size_t gwg[2] = { img.width / 4, img.height };
         size_t lwg[2] = { ctx.max_workgroup_size, 1 };
 
         struct timespec before, after;
