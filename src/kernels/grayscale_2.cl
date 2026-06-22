@@ -7,11 +7,11 @@ kernel void to_grayscale(
 
     uint4 rgb_pixel0 = read_imageui(
         rgb_img,
-        (int2) (x, y)
+        (int2) (2 * x, y)
     );
     uint4 rgb_pixel1 = read_imageui(
         rgb_img,
-        (int2) (x + 1, y)
+        (int2) (2 * x + 1, y)
     );
 
     uint gray0 = (
@@ -27,12 +27,12 @@ kernel void to_grayscale(
 
     write_imageui(
         luma_img,
-        (int2) (x, y),
+        (int2) (2 * x, y),
         (uint4) (gray0, gray0, gray0, 255)
     );
     write_imageui(
         luma_img,
-        (int2) (x + 1, y),
+        (int2) (2 * x + 1, y),
         (uint4) (gray1, gray1, gray1, 255)
     );
 }
