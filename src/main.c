@@ -61,11 +61,17 @@ int main() {
 
         size_t gwg[2] = { img.width / 4, img.height };
         size_t lwg[2] = { ctx.max_workgroup_size / 2, 1 };
-        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, NULL);
-    
+
+        struct timespec before, after;
+        clock_gettime(CLOCK_MONOTONIC, &before);
+        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, NULL);        
 
         // Finish before mapping
         clFinish(queue);
+        clock_gettime(CLOCK_MONOTONIC, &after);        
+        uint64_t delta_ns = (after.tv_sec - before.tv_sec) * 1000000000 +
+            (after.tv_nsec - before.tv_nsec);
+        printf("Took %lu micros to compute.\n", delta_ns / 1000);
 
         size_t origin[3] = { 0, 0, 0 };
         size_t region[3] = { img.width, img.height, 1 };
