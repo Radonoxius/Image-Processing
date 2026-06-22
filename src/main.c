@@ -2,6 +2,7 @@
 #include "png/png_utils.h"
 
 #include "opencl/cl_init.h"
+
 #include <time.h>
 
 int main() {
@@ -94,10 +95,10 @@ int main() {
         clock_gettime(CLOCK_MONOTONIC, &after);      
         uint64_t delta_ns = (after.tv_sec - before.tv_sec) * 1000000000 +
             (after.tv_nsec - before.tv_nsec);
-        printf("Total Time: %lums\n", delta_ns / 1000);
+        printf("Total Time: %lums\n", delta_ns / 1000000);
 
         free(gray_pixels);
-        png_free_pixels(img);
+        png_free_struct(img);
 
         clFinish(queue);
         clReleaseMemObject(rgb_img);

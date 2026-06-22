@@ -11,6 +11,7 @@
 
 // Holds `PNG` metadata and raw pixel data
 typedef struct PNGImage {
+    char *filename;    // The name of the PNG associated with the struct
     uint32_t width;    // Width of the image in pixels
     uint32_t height;   // Height of the image in pixels
     uint8_t *pixels;   // Array of raw pixel values
@@ -27,8 +28,9 @@ static uint64_t png_grayscale_pixel_data_len(const PNGImage *const img) {
     return img->width * img->height;
 }
 
-// Free the allocated raw pixels
-static void png_free_pixels(PNGImage img) {
+// Free the PNGImage struct
+static void png_free_struct(PNGImage img) {
+    free(img.filename);
     if (img.pixels != NULL)
         free(img.pixels);
 }
@@ -125,6 +127,7 @@ static PNGImage png_read(const char *const filename) {
     img.width = width;
     img.height = height;
     img.channels = channels;
+    img.filename = filename;
 
     // Allocate memory for the raw pixel buffer
     size_t row_bytes = png_get_rowbytes(png_ptr, info_ptr);
@@ -243,6 +246,7 @@ static PNGImage png_get_info(const char *const filename) {
     img.height = height;
     img.channels = channels;
     img.pixels = NULL; // Explicitly set to NULL since no data is read
+    img.filename = filename;
 
     // Clean up libpng structures and close the file
     png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
@@ -253,49 +257,38 @@ static PNGImage png_get_info(const char *const filename) {
 
 /**
  * Reads pixel data from a PNG file and populates a pre-allocated buffer.
- * @param filename The name of the image that will be read.
+ * @param img Pointer to your `PNGImage` struct.
  * @param pixel_buf Pre-allocated memory block to receive the raw pixel data.
  * @return 1 on success, 0 on failure.
  * 
  * #### Use this when dealing with iGPUs
  */
-static int png_get_pixeldata(const char *const filename, uint8_t *pixel_buf) {
-    if (!filename || !pixel_buf) {
+static int png_get_pixeldata(const PNGImage *const img, uint8_t *pixel_buf) {
+    if (!img || !img->filename || !pixel_buf) {
         fprintf(stderr, "Error: Invalid arguments passed to png_get_pixeldata.\n");
         return 0;
     }
 
-    FILE *fp = fopen(filename, "rb");
+    FILE *fp = fopen(img->filename, "rb");
     if (!fp) {
         perror("Error opening file");
         return 0;
     }
 
-    // Verify the PNG signature (first 8 bytes)
-    unsigned char header[8];
-    if (fread(header, 1, 8, fp) != 8 || png_sig_cmp(header, 0, 8)) {
-        fprintf(stderr, "Error: File %s is not a valid PNG.\n", filename);
-        fclose(fp);
-        return 0;
-    }
-
-    // Initialize libpng structures
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     if (!png_ptr) {
-        fprintf(stderr, "Error: png_create_read_struct failed.\n");
         fclose(fp);
         return 0;
     }
 
     png_infop info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr) {
-        fprintf(stderr, "Error: png_create_info_struct failed.\n");
         png_destroy_read_struct(&png_ptr, NULL, NULL);
         fclose(fp);
         return 0;
     }
 
-    // Set up error handling
+    // Standard libpng error recovery
     if (setjmp(png_jmpbuf(png_ptr))) {
         fprintf(stderr, "Error during PNG pixel reading.\n");
         png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
@@ -303,14 +296,13 @@ static int png_get_pixeldata(const char *const filename, uint8_t *pixel_buf) {
         return 0;
     }
 
-    // Initialize PNG I/O
+    // OPTIMIZATION 1: Let libpng read from byte 0. 
+    // We already know it's a valid PNG from png_get_info. If the file changed or corrupted
+    // underneath us, libpng's internal signature check will safely trip the setjmp block.
     png_init_io(png_ptr, fp);
-    png_set_sig_bytes(png_ptr, 8);
-
-    // Read the image metadata
     png_read_info(png_ptr, info_ptr);
 
-    // --- Standardizing the Image Format ---
+    // Get format parameters needed to recreate the normalization pipeline
     png_byte color_type = png_get_color_type(png_ptr, info_ptr);
     png_byte bit_depth = png_get_bit_depth(png_ptr, info_ptr);
 
@@ -330,51 +322,38 @@ static int png_get_pixeldata(const char *const filename, uint8_t *pixel_buf) {
         png_set_gray_to_rgb(png_ptr);
     }
 
-    // Apply the format updates
     png_read_update_info(png_ptr, info_ptr);
 
-    // Get updated dimensions straight from the file stream
-    png_uint_32 height = png_get_image_height(png_ptr, info_ptr);
-    size_t row_bytes = png_get_rowbytes(png_ptr, info_ptr);
+    // OPTIMIZATION 2: Calculate stride directly from metadata instead of querying libpng again.
+    size_t row_bytes = (size_t)img->width * img->channels;
 
-    // Setup an array of pointers mapping directly into the caller's pre-allocated `pixel_buf`
-    png_bytepp row_pointers = (png_bytepp)malloc(sizeof(png_bytep) * height);
-    if (!row_pointers) {
-        fprintf(stderr, "Error: Failed to allocate row pointers.\n");
-        png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-        fclose(fp);
-        return 0;
+    // OPTIMIZATION 3: Stream rows sequentially via `png_read_row`.
+    // Eliminates malloc/free overhead for `row_pointers` completely, keeping execution fast 
+    // and removing a potential heap allocation failure path. Perfect for iGPU zero-copy alignment layouts.
+    for (uint32_t i = 0; i < img->height; i++) {
+        png_read_row(png_ptr, pixel_buf + (i * row_bytes), NULL);
     }
-
-    for (png_uint_32 i = 0; i < height; i++) {
-        row_pointers[i] = pixel_buf + (i * row_bytes);
-    }
-
-    // Read the actual data straight into your external buffer
-    png_read_image(png_ptr, row_pointers);
 
     // Clean up
-    free(row_pointers);
     png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
     fclose(fp);
 
-    return 1; // Success
+    return 1;
 }
 
 /**
  * Writes a PNG image to disk.
- * @param filename The path/name where the image will be saved.
  * @param img Pointer to your `PNGImage` struct.
  * @return 0 on success, -1 on failure.
  */
-static int png_write(const char *const filename, const PNGImage *const img) {
+static int png_write(const PNGImage *const img) {
     if (!img || !img->pixels) {
         fprintf(stderr, "Error: Invalid image data or null pixel buffer.\n");
         return -1;
     }
 
     // 1. Open the file for writing in binary mode
-    FILE *fp = fopen(filename, "wb");
+    FILE *fp = fopen(img -> filename, "wb");
     if (!fp) {
         perror("Error opening file for writing");
         return -1;
@@ -461,13 +440,13 @@ static int png_write(const char *const filename, const PNGImage *const img) {
 
 /**
  * Writes an 8-bit greyscale PNG image to disk.
- * @param filename The path/name where the image will be saved.
+ * @param new_filename The path/name where the new image will be saved.
  * @param img Pointer to your `PNGImage` struct.
  * @param gray_pixels Pointer to the new greyscale pixels.
  * @return 0 on success, -1 on failure.
  */
 static int png_write_grayscale(
-    const char *const filename,
+    const char *const new_filename,
     const PNGImage *const img,
     const uint8_t *const gray_pixels
 ) {
@@ -476,7 +455,7 @@ static int png_write_grayscale(
         return -1;
     }
 
-    FILE *fp = fopen(filename, "wb");
+    FILE *fp = fopen(new_filename, "wb");
     if (!fp) {
         perror("Error opening file for writing");
         return -1;
