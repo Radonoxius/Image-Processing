@@ -14,13 +14,16 @@ int main() {
         is_image2d_format_available(&ctx, CL_R, CL_UNSIGNED_INT8) &&
         is_image2d_format_available(&ctx, CL_RGBA, CL_UNSIGNED_INT8)
     ) {
+        struct timespec before, after;
+        clock_gettime(CLOCK_MONOTONIC, &before);
+
         PNGImage img = png_read(PNG_FILE("watch"));
 
         cl_int err;
         cl_command_queue queue = clCreateCommandQueue(ctx.context, ctx.device, 0, NULL);
 
-        const uint8_t *spirv = file_read_bytes(SPIRV_PROGRAM("grayscale_2"));
-        const size_t spirv_sz = file_get_size_bytes(SPIRV_PROGRAM("grayscale_2"));
+        const uint8_t *spirv = file_read_bytes(SPIRV_PROGRAM("grayscale"));
+        const size_t spirv_sz = file_get_size_bytes(SPIRV_PROGRAM("grayscale"));
         cl_program program = clCreateProgramWithIL(ctx.context, spirv, spirv_sz, NULL);
         clBuildProgram(program, 1, &ctx.device, NULL, NULL, NULL);
         cl_kernel to_grayscale = clCreateKernel(program, "to_grayscale", NULL);
@@ -59,19 +62,19 @@ int main() {
         clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), &rgb_img);
         clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), &gs_img);
 
-        size_t gwg[2] = { img.width / 4, img.height };
+        size_t gwg[2] = { img.width / 2, img.height };
         size_t lwg[2] = { ctx.max_workgroup_size, 1 };
 
-        struct timespec before, after;
-        clock_gettime(CLOCK_MONOTONIC, &before);
+        struct timespec before_compute, after_compute;
+        clock_gettime(CLOCK_MONOTONIC, &before_compute);
         clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, NULL);        
 
         // Finish before mapping
         clFinish(queue);
-        clock_gettime(CLOCK_MONOTONIC, &after);        
-        uint64_t delta_ns = (after.tv_sec - before.tv_sec) * 1000000000 +
-            (after.tv_nsec - before.tv_nsec);
-        printf("Took %lu micros to compute.\n", delta_ns / 1000);
+        clock_gettime(CLOCK_MONOTONIC, &after_compute);        
+        uint64_t delta_compute_ns = (after_compute.tv_sec - before_compute.tv_sec) * 1000000000 +
+            (after_compute.tv_nsec - before_compute.tv_nsec);
+        printf("Compute Time: %lums\n", delta_compute_ns / 1000000);
 
         size_t origin[3] = { 0, 0, 0 };
         size_t region[3] = { img.width, img.height, 1 };
@@ -87,11 +90,16 @@ int main() {
         );
 
         png_write_grayscale(PNG_FILE("watch_gray"), &img, gray_pixels);
-        free(gray_pixels);
-        clFinish(queue);
 
+        clock_gettime(CLOCK_MONOTONIC, &after);      
+        uint64_t delta_ns = (after.tv_sec - before.tv_sec) * 1000000000 +
+            (after.tv_nsec - before.tv_nsec);
+        printf("Total Time: %lums\n", delta_ns / 1000);
+
+        free(gray_pixels);
         png_free_pixels(img);
 
+        clFinish(queue);
         clReleaseMemObject(rgb_img);
         clReleaseMemObject(gs_img);
         clReleaseKernel(to_grayscale);

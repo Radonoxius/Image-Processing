@@ -1,4 +1,4 @@
-#define UNROLL 4
+#define UNROLL 2
 
 kernel void to_grayscale(
     read_only image2d_t rgb_img,
