@@ -64,7 +64,7 @@ int main() {
 
         struct timespec before, after;
         clock_gettime(CLOCK_MONOTONIC, &before);
-        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, NULL, 0, NULL, NULL);        
+        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, NULL);        
 
         // Finish before mapping
         clFinish(queue);
