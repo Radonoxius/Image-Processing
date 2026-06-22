@@ -11,6 +11,6 @@ llvm-spirv grayscale_2.bc -o ../src/kernels/spirv/grayscale_2.cl.spv
 
 clang -O3 -flto -lpng -lOpenCL -Wall ../src/main.c -o main
 
-cp -r ../src/kernels kernels
+cp -r ../src/kernels .
 
 ./main
