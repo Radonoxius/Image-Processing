@@ -51,16 +51,17 @@ int main() {
             CL_MEM_WRITE_ONLY,
             &gs_format,
             img.width, img.height,
-            0, NULL,
+            0,
+            NULL,
             NULL
         );
 
         clSetKernelArg(to_grayscale, 0, sizeof(cl_mem), &rgb_img);
         clSetKernelArg(to_grayscale, 1, sizeof(cl_mem), &gs_img);
 
-        // One work item per pixel; no width/4 truncation
-        size_t gwg[2] = { img.width, img.height };
-        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, NULL, 0, NULL, NULL);
+        size_t gwg[2] = { img.width / 4, img.height };
+        size_t lwg[2] = { ctx.max_workgroup_size / 2, 1 };
+        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, NULL);
     
 
         // Finish before mapping
@@ -92,6 +93,9 @@ int main() {
         clReleaseCommandQueue(queue);
     }
 
+    if (DGPU_IMAGE_PROFILE(&ctx))
+        printf("dGPU detected! Nothing to do since code is incompatible!\n");
+    
     free_compute_context(ctx);
     return 0;
 }
