@@ -139,15 +139,17 @@ static void print_context_info(const ComputeContext *const ctx, uint8_t show_pro
 static void free_compute_context(ComputeContext ctx) {
     IMAGE2D_FORMAT_COUNT = 0;
     free(ALL_IMAGE2D_FORMATS);
+    ALL_IMAGE2D_FORMATS = NULL;
 
     DEVICE_FEATURE_COUNT = 0;
     free(ALL_DEVICE_FEATURES);
+    ALL_DEVICE_FEATURES = NULL;
 
     free(ALL_DEVICE_EXTENSIONS);
+    ALL_DEVICE_EXTENSIONS = NULL;
 
     if (ctx.spirv_versions_str != NULL)
         free(ctx.spirv_versions_str);
 
     clReleaseContext(ctx.context);
-    clReleaseDevice(ctx.device);
 }

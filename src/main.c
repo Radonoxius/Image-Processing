@@ -98,7 +98,8 @@ int main() {
         printf("Total Time: %lums\n", delta_ns / 1000000);
 
         free(gray_pixels);
-        png_free_struct(img);
+        png_delete(img);
+        free((void *) spirv);
 
         clFinish(queue);
         clReleaseMemObject(rgb_img);

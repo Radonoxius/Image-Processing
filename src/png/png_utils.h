@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <png.h>
 
@@ -11,7 +12,7 @@
 
 // Holds `PNG` metadata and raw pixel data
 typedef struct PNGImage {
-    char *filename;    // The name of the PNG associated with the struct
+    char *filename;    // The name of the PNG associated with the struct (DO NOT FREE)
     uint32_t width;    // Width of the image in pixels
     uint32_t height;   // Height of the image in pixels
     uint8_t *pixels;   // Array of raw pixel values
@@ -29,8 +30,7 @@ static uint64_t png_grayscale_pixel_data_len(const PNGImage *const img) {
 }
 
 // Free the PNGImage struct
-static void png_free_struct(PNGImage img) {
-    free(img.filename);
+static void png_delete(PNGImage img) {
     if (img.pixels != NULL)
         free(img.pixels);
 }
