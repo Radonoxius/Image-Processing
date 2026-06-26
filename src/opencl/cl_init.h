@@ -29,6 +29,8 @@ static ComputeContext init() {
 
     clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &ctx.max_workgroup_size, NULL);
     clGetDeviceInfo(device, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &ctx.max_compute_units, NULL);
+    clGetDeviceInfo(device, CL_DEVICE_PROFILING_TIMER_RESOLUTION, sizeof(size_t), &ctx.profile_timer_res, NULL);
+    clGetDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE, sizeof(cl_uint), &ctx.cacheline_size, NULL);
 
     cl_bool img_s;
     clGetDeviceInfo(device, CL_DEVICE_IMAGE_SUPPORT, sizeof(cl_bool), &img_s, NULL);
@@ -36,6 +38,12 @@ static ComputeContext init() {
     cl_bool usm_s;
     clGetDeviceInfo(device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof(cl_bool), &usm_s, NULL);
     ctx.usm_support = (uint8_t) usm_s;
+
+    cl_command_queue_properties q_prop;
+    clGetDeviceInfo(device, CL_DEVICE_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties), &q_prop, NULL);
+    if (q_prop & CL_QUEUE_PROFILING_ENABLE == CL_QUEUE_PROFILING_ENABLE)
+        ctx.host_queue_profiling_support = CL_TRUE;
+    
 
     size_t il_str_len;
     cl_int errcode = clGetDeviceInfo(device, CL_DEVICE_IL_VERSION, 0, NULL, &il_str_len);
@@ -67,12 +75,17 @@ static ComputeContext init() {
     if (errcode == CL_SUCCESS && CL_VERSION_MAJOR(device_version) == 3)
         ctx.cl_30_support = CL_TRUE;
 
+    if (ctx.cl_20_support == CL_TRUE) {
+        clGetDeviceInfo(device, CL_DEVICE_IMAGE_PITCH_ALIGNMENT, sizeof(cl_uint), &ctx.image_pitch_alignment, NULL);
+        clGetDeviceInfo(device, CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT, sizeof(cl_uint), &ctx.image_address_alignment, NULL);
+    }
+
     if (ctx.cl_30_support == CL_TRUE) {
         ctx.image_support = ctx.image_support &&
             is_device_feature_available(&ctx, "__opencl_c_images");
 
         cl_bool nuw_s;
-        clGetDeviceInfo(device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof(cl_bool), &nuw_s, NULL);
+        clGetDeviceInfo(device, CL_DEVICE_NON_UNIFORM_WORK_GROUP_SUPPORT, sizeof(cl_bool), &nuw_s, NULL);
         ctx.non_uniform_workgroup_support = (uint8_t) nuw_s;
     }
 
@@ -84,6 +97,8 @@ static ComputeContext init() {
  * 
  * @param ctx A pointer to the context whose info
  * is printed.
+ * @param show_profile_support Whether profile support
+ * is printed (`CL_TRUE` or `CL_FALSE`)
  */
 static void print_context_info(const ComputeContext *const ctx, uint8_t show_profile_support) {
     printf("\nCompute Context Info:\n--------\n");
@@ -100,6 +115,7 @@ static void print_context_info(const ComputeContext *const ctx, uint8_t show_pro
     printf("[%s] %s\n\n", vendor_name, device_name);
     printf("# Compute Units:             %u\n", ctx -> max_compute_units);
     printf("Max # Threads per WorkGroup: %lu\n", ctx -> max_workgroup_size);
+    printf("Cacheline Size:              %u\n", ctx -> cacheline_size);
     printf("Non-Uniform WorkGroups:      %s\n\n", STRINGIFY(ctx -> non_uniform_workgroup_support));
 
     if (ctx -> spirv_versions_str != NULL) {
@@ -111,7 +127,14 @@ static void print_context_info(const ComputeContext *const ctx, uint8_t show_pro
     printf("OpenCLv2.1 Support:          %s\n", STRINGIFY(ctx -> cl_21_support));
     printf("OpenCLv2.0 Support:          %s\n\n", STRINGIFY(ctx -> cl_20_support));
 
+    printf("Profile Timer Resolution:    %lu\n", ctx -> cacheline_size);
+    printf("Queue Profile Support:       %s\n\n", STRINGIFY(ctx -> host_queue_profiling_support));
+
     printf("Image Support:               %s\n", STRINGIFY(ctx -> image_support));
+    if (ctx -> cl_20_support == CL_TRUE) {
+        printf("Image Pitch Alignment:       %u\n", ctx -> image_pitch_alignment);
+        printf("Image Address Alignment:     %u\n", ctx -> image_address_alignment);
+    }
 
     if (show_profile_support == CL_TRUE) {
         printf("Unified Memory Support:      %s\n\n", STRINGIFY(ctx -> usm_support));

@@ -18,10 +18,10 @@ int main() {
         struct timespec before, after;
         clock_gettime(CLOCK_MONOTONIC, &before);
 
-        PNGImage img = png_read(PNG_FILE("watch"));
-
+        PNGImage img = png_get_info(PNG_FILE("watch"));
         cl_int err;
-        cl_command_queue queue = clCreateCommandQueue(ctx.context, ctx.device, 0, NULL);
+
+        cl_command_queue queue = clCreateCommandQueueWithProperties(ctx.context, ctx.device, NULL, NULL);
 
         const uint8_t *spirv = file_read_bytes(SPIRV_PROGRAM("grayscale"));
         const size_t spirv_sz = file_get_size_bytes(SPIRV_PROGRAM("grayscale"));
@@ -29,19 +29,33 @@ int main() {
         clBuildProgram(program, 1, &ctx.device, NULL, NULL, NULL);
         cl_kernel to_grayscale = clCreateKernel(program, "to_grayscale", NULL);
 
-        cl_image_format rgb_format = {
+        cl_image_format rgba_img_format = {
             .image_channel_order     = CL_RGBA,
             .image_channel_data_type = CL_UNSIGNED_INT8
         };
+        cl_image_desc rgba_img_desc = {
+            .image_type = CL_MEM_OBJECT_IMAGE2D,
+            .image_width = img.width,
+            .image_height = img.height,
+            .image_depth = 1,
+            .image_array_size = 1,
+            .image_row_pitch = 0,
+            .image_slice_pitch = 0,
+            .num_mip_levels = 0,
+            .num_samples = 0
+        };
+
         cl_image_format gs_format = {
             .image_channel_order     = CL_R,
             .image_channel_data_type = CL_UNSIGNED_INT8
         };
 
+
+
         cl_mem rgb_img = clCreateImage2D(
             ctx.context,
             CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY | CL_MEM_COPY_HOST_PTR,
-            &rgb_format,
+            &rgba_img_format,
             img.width, img.height,
             img.width * 4,
             img.pixels,
@@ -68,11 +82,11 @@ int main() {
 
         struct timespec before_compute, after_compute;
         clock_gettime(CLOCK_MONOTONIC, &before_compute);
-        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, NULL);        
 
-        // Finish before mapping
+        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, NULL);        
         clFinish(queue);
-        clock_gettime(CLOCK_MONOTONIC, &after_compute);        
+
+        clock_gettime(CLOCK_MONOTONIC, &after_compute);      
         uint64_t delta_compute_ns = (after_compute.tv_sec - before_compute.tv_sec) * 1000000000 +
             (after_compute.tv_nsec - before_compute.tv_nsec);
         printf("Compute Time: %lums\n", delta_compute_ns / 1000000);
@@ -100,8 +114,8 @@ int main() {
         free(gray_pixels);
         png_delete(img);
         free((void *) spirv);
-
         clFinish(queue);
+
         clReleaseMemObject(rgb_img);
         clReleaseMemObject(gs_img);
         clReleaseKernel(to_grayscale);
