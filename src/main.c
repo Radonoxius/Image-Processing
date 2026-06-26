@@ -18,7 +18,7 @@ int main() {
         struct timespec before, after;
         clock_gettime(CLOCK_MONOTONIC, &before);
 
-        PNGImage img = png_get_info(PNG_FILE("watch"));
+        PNGImage img = png_read(PNG_FILE("watch"));
         cl_int err;
 
         cl_command_queue queue = clCreateCommandQueueWithProperties(ctx.context, ctx.device, NULL, NULL);

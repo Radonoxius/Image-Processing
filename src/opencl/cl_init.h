@@ -127,13 +127,13 @@ static void print_context_info(const ComputeContext *const ctx, uint8_t show_pro
     printf("OpenCLv2.1 Support:          %s\n", STRINGIFY(ctx -> cl_21_support));
     printf("OpenCLv2.0 Support:          %s\n\n", STRINGIFY(ctx -> cl_20_support));
 
-    printf("Profile Timer Resolution:    %lu\n", ctx -> cacheline_size);
-    printf("Queue Profile Support:       %s\n\n", STRINGIFY(ctx -> host_queue_profiling_support));
+    printf("Profile Timer Resolution:    %luns\n", ctx -> cacheline_size);
+    printf("Queue Profiler Support:      %s\n\n", STRINGIFY(ctx -> host_queue_profiling_support));
 
     printf("Image Support:               %s\n", STRINGIFY(ctx -> image_support));
     if (ctx -> cl_20_support == CL_TRUE) {
         printf("Image Pitch Alignment:       %u\n", ctx -> image_pitch_alignment);
-        printf("Image Address Alignment:     %u\n", ctx -> image_address_alignment);
+        printf("Image Address Alignment:     %u\n\n", ctx -> image_address_alignment);
     }
 
     if (show_profile_support == CL_TRUE) {
