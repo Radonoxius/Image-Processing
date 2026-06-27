@@ -86,10 +86,10 @@ int main() {
         cl_ulong before_compute, after_compute;
         cl_event kern_exec;
         clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, &kern_exec);
+        clFinish(queue);
+        
         clGetEventProfilingInfo(kern_exec, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &before_compute, NULL);  
         clGetEventProfilingInfo(kern_exec, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &after_compute, NULL);  
-        clFinish(queue);
-
         uint64_t delta_compute_ns = after_compute - before_compute;
         printf("Compute Time: %lums\n", delta_compute_ns / 1000000);
 
