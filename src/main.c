@@ -12,6 +12,9 @@ int main() {
     if (
         IGPU_CL30_SPIRV_IMAGE_PROFILE(&ctx) &&
 
+        ctx.host_queue_profiling_support == CL_TRUE &&
+        is_device_extension_available(ctx.device, "cl_khr_command_buffer") &&
+
         is_image2d_format_available(&ctx, CL_R, CL_UNSIGNED_INT8) &&
         is_image2d_format_available(&ctx, CL_RGBA, CL_UNSIGNED_INT8)
     ) {
@@ -80,15 +83,14 @@ int main() {
         size_t gwg[2] = { img.width / 2, img.height };
         size_t lwg[2] = { ctx.max_workgroup_size, 1 };
 
-        struct timespec before_compute, after_compute;
-        clock_gettime(CLOCK_MONOTONIC, &before_compute);
-
-        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, NULL);        
+        cl_ulong before_compute, after_compute;
+        cl_event kern_exec;
+        clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, &kern_exec);
+        clGetEventProfilingInfo(kern_exec, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &before_compute, NULL);  
+        clGetEventProfilingInfo(kern_exec, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &after_compute, NULL);  
         clFinish(queue);
 
-        clock_gettime(CLOCK_MONOTONIC, &after_compute);      
-        uint64_t delta_compute_ns = (after_compute.tv_sec - before_compute.tv_sec) * 1000000000 +
-            (after_compute.tv_nsec - before_compute.tv_nsec);
+        uint64_t delta_compute_ns = after_compute - before_compute;
         printf("Compute Time: %lums\n", delta_compute_ns / 1000000);
 
         size_t origin[3] = { 0, 0, 0 };
