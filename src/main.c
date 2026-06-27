@@ -24,7 +24,8 @@ int main() {
         PNGImage img = png_read(PNG_FILE("watch"));
         cl_int err;
 
-        cl_command_queue queue = clCreateCommandQueueWithProperties(ctx.context, ctx.device, NULL, NULL);
+        cl_queue_properties props[] = { CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0 };
+        cl_command_queue queue = clCreateCommandQueueWithProperties(ctx.context, ctx.device, props, NULL);
 
         const uint8_t *spirv = file_read_bytes(SPIRV_PROGRAM("grayscale"));
         const size_t spirv_sz = file_get_size_bytes(SPIRV_PROGRAM("grayscale"));
@@ -87,7 +88,7 @@ int main() {
         cl_event kern_exec;
         clEnqueueNDRangeKernel(queue, to_grayscale, 2, NULL, gwg, lwg, 0, NULL, &kern_exec);
         clFinish(queue);
-        
+
         clGetEventProfilingInfo(kern_exec, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &before_compute, NULL);  
         clGetEventProfilingInfo(kern_exec, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &after_compute, NULL);  
         uint64_t delta_compute_ns = after_compute - before_compute;
